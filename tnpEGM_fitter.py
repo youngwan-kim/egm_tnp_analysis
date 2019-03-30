@@ -98,9 +98,9 @@ if args.createHists:
         if sampleType == args.sample or args.sample == 'all' :
             print 'creating histogram for sample '
             sample.dump()
-            var = { 'name' : 'pair_mass', 'nbins' : 80, 'min' : 50, 'max': 130 }
+            var = { 'name' : 'mass', 'nbins' : 80, 'min' : 50, 'max': 130 }
             if sample.mcTruth:
-                var = { 'name' : 'pair_mass', 'nbins' : 80, 'min' : 50, 'max': 130 }
+                var = { 'name' : 'mass', 'nbins' : 80, 'min' : 50, 'max': 130 }
             tnpHist.makePassFailHistograms( sample, tnpConf.flags[args.flag], tnpBins, var )
 
     sys.exit(0)

@@ -114,7 +114,7 @@ def makePassFailHistograms( sample, flag, bindef, var ):
 
     # Find out with variables are used to activate the corresponding branches
     replace_patterns = ['&', '|', '-', 'cos(', 'sqrt(', 'fabs(', 'abs(', '(', ')', '>', '<', '=', '!', '*', '/']
-    branches = " ".join(cutBinList) + " pair_mass " + flag
+    branches = " ".join(cutBinList) + " "+var['name']+" "+ flag
     for p in replace_patterns:
         branches = branches.replace(p, ' ')
 
@@ -128,7 +128,7 @@ def makePassFailHistograms( sample, flag, bindef, var ):
         tree.SetBranchStatus(br, 1)
 
     # Set adress of pair mass
-    tree.SetBranchAddress("pair_mass", <void*>&pair_mass)
+    tree.SetBranchAddress(var['name'], <void*>&pair_mass)
 
     ################
     # Loop over Tree
