@@ -8,7 +8,8 @@ from ROOT import tnpFitter
 
 import re
 import math
-
+import sys
+import time
 
 minPtForSwitch = 70
 
@@ -239,4 +240,35 @@ def histFitterAltBkg( sample, tnpBin, tnpWorkspaceParam ):
     fitter.fits(sample.mcTruth,title)
     rootfile.Close()
 
+
+def histFitter(histfile,fitfile,tnpBin,xmin,xmax,fitparameters,doDraw):
+    if doDraw: rt.gROOT.SetBatch(0)
+    tnpWorkspace = []
+    tnpWorkspace.extend(fitparameters)
+    
+    fitter = tnpFitter( histfile, tnpBin['name'],xmin,xmax )
+
+    ## setup
+    fitter.useMinos()
+    rootfile = rt.TFile(fitfile,'update')
+    fitter.setOutputFile( rootfile )
+    
+    ### set workspace
+    workspace = rt.vector("string")()
+    for iw in tnpWorkspace:
+        workspace.push_back(iw)
+
+    fitter.setWorkspace( workspace )
+
+    title = tnpBin['title'].replace(';',' - ')
+    title = title.replace('probe_sc_eta','#eta_{SC}')
+    title = title.replace('probe_Ele_pt','p_{T}')
+    print title
+    fit=fitter.fits(title,doDraw)
+    if doDraw: 
+        fit.Draw()
+        time.sleep(10)
+        rt.gROOT.SetBatch(1)
+
+    rootfile.Close()
 

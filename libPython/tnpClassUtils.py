@@ -6,67 +6,25 @@ def mkdir(directory):
         os.makedirs(directory) 
 
 class tnpSample:
-    def __init__(self, sName, path, cut = None, lumi = -1, nEvts = -1, mcTruth = False, puTree = None, isMC = False ):
-        self.path = []
-        self.name = sName
-        self.path.append(path)
-        self.cut     = cut
-        self.lumi    = lumi
-        self.nEvts   = nEvts
-        self.mcTruth = mcTruth
-        self.puTree  = puTree
-        self.isMC    = isMC
-        self.weight  = None
-        self.tnpTree = None
-        self.maxWeight = 999999
-
-    def set_weight(self,weight):
-        self.weight = weight
-
-    def set_maxWeight(self, maxi):
-        self.maxWeight = maxi
-    
-    def set_tnpTree( self, treename):
-        self.tnpTree = treename
-
-    def set_puTree(self,puTree):
-        self.puTree = puTree
-
-    def set_cut(self,cut):
-        self.cut = cut
-    
-    def set_mcTruth(self,truth = True):
-        self.mcTruth = truth
+    def __init__(self, paths, eventexp, fitfunctions,mass_nbin,mass_min,mass_max):
+        self.paths=paths
+        self.eventexp=eventexp
+        self.fitfunctions=fitfunctions
+        self.histFile=None
+        self.fitFile=None
+        self.mass_nbin=mass_nbin
+        self.mass_min=mass_min
+        self.mass_max=mass_max
 
     def dump(self):
-        print '**** name: %-*s ' % (100, self.name)
-        print '  path    : ', self.path
-        print '  tnpTree : ', self.tnpTree
-        if self.isMC:
-            print '   --- MC sample --- '
-            print '  nEvts    : ', self.nEvts
-            print '  mcTruth  : ', self.mcTruth
-            print '  puTree   : ', self.puTree
-            print '  weight   : ', self.weight
-        else  :
-            print '   --- Data sample --- '
-            print '  lumi     : ', self.lumi
-
-    def rename(self, newname):
-        self.name = newname
-    
-    def clone(self):
-        return copy.deepcopy(self)
-
-
-    def add_sample(self, sample):
-        if self.lumi >= 0  :
-            self.lumi = self.lumi + sample.lumi
-        if self.nEvts >= 0 :
-            self.nEvts = self.nEvts + sample.nEvts
-        self.path.extend( sample.path )
-
-
+        print '  paths    : ', self.paths
+        print '  eventexp  : ', self.eventexp
+        print '  fitfuctions  : ', self.fitfunctions
+        print '  histFile  : ', self.histFile
+        print '  fitFile  : ', self.fitFile
+        print '  mass_nbin  : ', self.mass_nbin
+        print '  mass_min: ',self.mass_min
+        print '  mass_max: ',self.mass_max
 
 
 import ROOT as rt

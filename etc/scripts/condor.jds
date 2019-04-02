@@ -1,0 +1,6 @@
+Executable	= etc/scripts/condor_helper.sh
+Error           = log/err.$(cluster)
+Output          = log/out.$(cluster)
+Log             = log/log.$(cluster)
+Arguments	= $(ARGU)
+getenv		= True

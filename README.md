@@ -1,5 +1,20 @@
-# egm_tnp_analysis
+# Muon TnP using egm_tnp_analysis
+## Quick Start
 
+>source setup.sh
+
+>python tnpEGM_fitter.py etc/config/muon2017idiso.py --craeteBins
+
+>python tnpEGM_fitter.py etc/config/muon2017idiso.py --createHist --condor -n 20
+
+>python tnpEGM_fitter.py etc/config/muon2017idiso.py --doFit --condor
+
+>python tnpEGM_fitter.py etc/config/muon2017idiso.py --select --condor
+
+>python tnpEGM_fitter.py etc/config/muon2017idiso.py --doPlot --condor
+
+
+# egm_tnp_analysis (Old message)
 ## General note on installation
 
 This code can in principle run on your laptop but you need ROOT 6.10 or higher and RooFit installed to use some advanced features when creating histograms.

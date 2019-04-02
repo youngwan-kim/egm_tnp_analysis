@@ -3,6 +3,35 @@ import math
 from fitUtils import *
 #from fitSimultaneousUtils import *
 
+def GetChiPassFail(filename,binname):
+    canvas=GetTObject(filename,binname+'_Canv')
+    chiPass=canvas.GetPad(2).GetPrimitive('chiPass').GetTitle()
+    chiFail=canvas.GetPad(3).GetPrimitive('chiFail').GetTitle()
+    return float(chiPass.replace('chi/n=','')),float(chiFail.replace('chi/n=',''))
+
+def GetScorePassFail(filename,binname):
+    canvas=GetTObject(filename,binname+'_Canv')
+    chiPass=canvas.GetPad(2).GetPrimitive('scorePass').GetTitle()
+    chiFail=canvas.GetPad(3).GetPrimitive('scoreFail').GetTitle()
+    return float(chiPass.replace('score=','')),float(chiFail.replace('score=',''))
+
+def GetRooFitPar(filename,objname,parname):
+    roofitresult=GetTObject(filename,objname)
+    rooarglist=roofitresult.floatParsFinal()
+    return rooarglist.at(rooarglist.index(parname)).getVal()
+
+def GetTObject(filename,objname):
+    rootfile=rt.TFile(filename,"read")
+    obj=rootfile.Get(objname)
+    rootfile.Close()
+    return obj
+
+def MoveTObject(filename1,filename2,objname):
+    obj=GetTObject(filename1,objname)
+    rootfile=rt.TFile(filename2,"update")
+    if obj:
+        obj.Write(objname)
+    rootfile.Close()
 
 def histPlotter( filename, tnpBin, plotDir ):
     print 'opening ', filename

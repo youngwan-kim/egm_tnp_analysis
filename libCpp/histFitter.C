@@ -25,80 +25,62 @@ using namespace std;
 
 class tnpFitter {
 public:
-  tnpFitter( TFile *file, std::string histname  );
-  tnpFitter( TH1 *hPass, TH1 *hFail, std::string histname  );
-  ~tnpFitter(void) {if( _work != 0 ) delete _work; }
+  tnpFitter( TString filein, std::string histname,double xmin,double xmax);
+  ~tnpFitter(void) {if( _work != 0 ) delete _work;}
   void setZLineShapes(TH1 *hZPass, TH1 *hZFail );
   void setWorkspace(std::vector<std::string>);
   void setOutputFile(TFile *fOut ) {_fOut = fOut;}
-  void fits(bool mcTruth,std::string title = "");
+  TCanvas* fits(std::string title = "",bool doCheck=false);
   void useMinos(bool minos = true) {_useMinos = minos;}
   void textParForCanvas(RooFitResult *resP, RooFitResult *resF, TPad *p);
   
   void fixSigmaFtoSigmaP(bool fix=true) { _fixSigmaFtoSigmaP= fix;}
 
   void setFitRange(double xMin,double xMax) { _xFitMin = xMin; _xFitMax = xMax; }
-private:
   RooWorkspace *_work;
+private:
   std::string _histname_base;
   TFile *_fOut;
   double _nTotP, _nTotF;
   bool _useMinos;
   bool _fixSigmaFtoSigmaP;
   double _xFitMin,_xFitMax;
+  int nBins;
 };
 
-tnpFitter::tnpFitter(TFile *filein, std::string histname   ) : _useMinos(false),_fixSigmaFtoSigmaP(false) {
-  RooMsgService::instance().setGlobalKillBelow(RooFit::WARNING);
+tnpFitter::tnpFitter(TString filein, std::string histname,double xmin, double xmax) : _useMinos(false),_fixSigmaFtoSigmaP(false) {
+  TFile f(filein);
+  TH1 *hPass = (TH1*) f.Get(TString::Format("%s_Pass",histname.c_str()).Data());
+  TH1 *hFail = (TH1*) f.Get(TString::Format("%s_Fail",histname.c_str()).Data());
+  hPass->SetDirectory(0);
+  hFail->SetDirectory(0);
+  f.Close();
+  nBins=hPass->GetNBinsX();
+
+  RooMsgService::instance().setGlobalKillBelow(RooFit::FATAL);
+  RooMsgService::instance().setSilentMode(true);
   _histname_base = histname;  
 
-  TH1 *hPass = (TH1*) filein->Get(TString::Format("%s_Pass",histname.c_str()).Data());
-  TH1 *hFail = (TH1*) filein->Get(TString::Format("%s_Fail",histname.c_str()).Data());
   _nTotP = hPass->Integral();
   _nTotF = hFail->Integral();
+  cout<<_nTotP<<" "<<_nTotF<<endl;
   /// MC histos are done between 50-130 to do the convolution properly
   /// but when doing MC fit in 60-120, need to zero bins outside the range
   for( int ib = 0; ib <= hPass->GetXaxis()->GetNbins()+1; ib++ )
-   if(  hPass->GetXaxis()->GetBinCenter(ib) <= 60 || hPass->GetXaxis()->GetBinCenter(ib) >= 120 ) {
-     hPass->SetBinContent(ib,0);
-     hFail->SetBinContent(ib,0);
-   }
-  
-  _work = new RooWorkspace("w") ;
-  _work->factory("x[50,130]");
-
-  RooDataHist rooPass("hPass","hPass",*_work->var("x"),hPass);
-  RooDataHist rooFail("hFail","hFail",*_work->var("x"),hFail);
-  _work->import(rooPass) ;
-  _work->import(rooFail) ;
-  _xFitMin = 60;
-  _xFitMax = 120;
-}
-
-tnpFitter::tnpFitter(TH1 *hPass, TH1 *hFail, std::string histname  ) : _useMinos(false),_fixSigmaFtoSigmaP(false) {
-  RooMsgService::instance().setGlobalKillBelow(RooFit::WARNING);
-  _histname_base = histname;
-  
-  _nTotP = hPass->Integral();
-  _nTotF = hFail->Integral();
-  /// MC histos are done between 50-130 to do the convolution properly
-  /// but when doing MC fit in 60-120, need to zero bins outside the range
-  for( int ib = 0; ib <= hPass->GetXaxis()->GetNbins()+1; ib++ )
-    if(  hPass->GetXaxis()->GetBinCenter(ib) <= 60 || hPass->GetXaxis()->GetBinCenter(ib) >= 120 ) {
+    if(  hPass->GetXaxis()->GetBinCenter(ib) <= xmin || hPass->GetXaxis()->GetBinCenter(ib) >= xmax ) {
       hPass->SetBinContent(ib,0);
       hFail->SetBinContent(ib,0);
     }
   
   _work = new RooWorkspace("w") ;
-  _work->factory("x[50,130]");
+  _work->factory(Form("x[%f,%f]",xmin,xmax));
   
   RooDataHist rooPass("hPass","hPass",*_work->var("x"),hPass);
   RooDataHist rooFail("hFail","hFail",*_work->var("x"),hFail);
   _work->import(rooPass) ;
   _work->import(rooFail) ;
-  _xFitMin = 60;
-  _xFitMax = 120;
-  
+  _xFitMin = xmin;
+  _xFitMax = xmax;
 }
 
 
@@ -111,75 +93,55 @@ void tnpFitter::setZLineShapes(TH1 *hZPass, TH1 *hZFail ) {
 
 void tnpFitter::setWorkspace(std::vector<std::string> workspace) {
   for( unsigned icom = 0 ; icom < workspace.size(); ++icom ) {
+    cout<<workspace[icom]<<endl;
     _work->factory(workspace[icom].c_str());
   }
 
-  _work->factory("HistPdf::sigPhysPass(x,hGenZPass)");
-  _work->factory("HistPdf::sigPhysFail(x,hGenZFail)");
-  _work->factory("FCONV::sigPass(x, sigPhysPass , sigResPass)");
-  _work->factory("FCONV::sigFail(x, sigPhysFail , sigResFail)");
-  _work->factory(TString::Format("nSigP[%f,0.5,%f]",_nTotP*0.9,_nTotP*1.5));
-  _work->factory(TString::Format("nBkgP[%f,0.5,%f]",_nTotP*0.1,_nTotP*1.5));
-  _work->factory(TString::Format("nSigF[%f,0.5,%f]",_nTotF*0.9,_nTotF*1.5));
-  _work->factory(TString::Format("nBkgF[%f,0.5,%f]",_nTotF*0.1,_nTotF*1.5));
-  _work->factory("SUM::pdfPass(nSigP*sigPass,nBkgP*bkgPass)");
-  _work->factory("SUM::pdfFail(nSigF*sigFail,nBkgF*bkgFail)");
+  if(!_work->var("nSigP")) _work->factory(TString::Format("nSigP[%f,10,%f]",_nTotP*0.9,_nTotP*1.5));
+  if(!_work->var("nBkgP")) _work->factory(TString::Format("nBkgP[%f,10,%f]",_nTotP*0.1,_nTotP*1.5));
+  if(!_work->var("nSigF")) _work->factory(TString::Format("nSigF[%f,10,%f]",_nTotF*0.9,_nTotF*1.5));
+  if(!_work->var("nBkgF")) _work->factory(TString::Format("nBkgF[%f,10,%f]",_nTotF*0.1,_nTotF*1.5));
+  _work->factory("SUM::pdfPass(nSigP*signalPass,nBkgP*backgroundPass)");
+  _work->factory("SUM::pdfFail(nSigF*signalFail,nBkgF*backgroundFail)");
   _work->Print();			         
 }
 
-void tnpFitter::fits(bool mcTruth,string title) {
-
+TCanvas* tnpFitter::fits(string title,bool doCheck) {
   cout << " title : " << title << endl;
 
   
   RooAbsPdf *pdfPass = _work->pdf("pdfPass");
   RooAbsPdf *pdfFail = _work->pdf("pdfFail");
 
-  if( mcTruth ) {
-    _work->var("nBkgP")->setVal(0); _work->var("nBkgP")->setConstant();
-    _work->var("nBkgF")->setVal(0); _work->var("nBkgF")->setConstant();
-    if( _work->var("sosP")   ) { _work->var("sosP")->setVal(0);
-      _work->var("sosP")->setConstant(); }
-    if( _work->var("sosF")   ) { _work->var("sosF")->setVal(0);
-      _work->var("sosF")->setConstant(); }
-    if( _work->var("acmsP")  ) _work->var("acmsP")->setConstant();
-    if( _work->var("acmsF")  ) _work->var("acmsF")->setConstant();
-    if( _work->var("betaP")  ) _work->var("betaP")->setConstant();
-    if( _work->var("betaF")  ) _work->var("betaF")->setConstant();
-    if( _work->var("gammaP") ) _work->var("gammaP")->setConstant();
-    if( _work->var("gammaF") ) _work->var("gammaF")->setConstant();
-  }
-
   /// FC: seems to be better to change the actual range than using a fitRange in the fit itself (???)
   /// FC: I don't know why but the integral is done over the full range in the fit not on the reduced range
   _work->var("x")->setRange(_xFitMin,_xFitMax);
   _work->var("x")->setRange("fitMassRange",_xFitMin,_xFitMax);
-  RooFitResult* resPass = pdfPass->fitTo(*_work->data("hPass"),Minos(_useMinos),SumW2Error(kTRUE),Save(),Range("fitMassRange"));
+  RooFitResult* resPass = pdfPass->fitTo(*_work->data("hPass"),Minos(_useMinos),SumW2Error(kTRUE),Save(),Range("fitMassRange"),PrintLevel(-1));
   //RooFitResult* resPass = pdfPass->fitTo(*_work->data("hPass"),Minos(_useMinos),SumW2Error(kTRUE),Save());
   if( _fixSigmaFtoSigmaP ) {
-    _work->var("sigmaF")->setVal( _work->var("sigmaP")->getVal() );
-    _work->var("sigmaF")->setConstant();
+    //_work->var("sigmaF")->setVal( _work->var("sigmaP")->getVal() );
+    //_work->var("sigmaF")->setConstant();
   }
 
-  _work->var("sigmaF")->setVal(_work->var("sigmaP")->getVal());
-  _work->var("sigmaF")->setRange(0.8* _work->var("sigmaP")->getVal(), 3.0* _work->var("sigmaP")->getVal());
+  //_work->var("sigmaF")->setVal(_work->var("sigmaP")->getVal());
+  //_work->var("sigmaF")->setRange(0.8* _work->var("sigmaP")->getVal(), 3.0* _work->var("sigmaP")->getVal());
   RooFitResult* resFail = pdfFail->fitTo(*_work->data("hFail"),Minos(_useMinos),SumW2Error(kTRUE),Save(),Range("fitMassRange"));
   //RooFitResult* resFail = pdfFail->fitTo(*_work->data("hFail"),Minos(_useMinos),SumW2Error(kTRUE),Save());
 
-
-  RooPlot *pPass = _work->var("x")->frame(60,120);
-  RooPlot *pFail = _work->var("x")->frame(60,120);
+  RooPlot *pPass = _work->var("x")->frame(_xFitMin,_xFitMax);
+  RooPlot *pFail = _work->var("x")->frame(_xFitMin,_xFitMax);
   pPass->SetTitle("passing probe");
   pFail->SetTitle("failing probe");
   
   _work->data("hPass") ->plotOn( pPass );
   _work->pdf("pdfPass")->plotOn( pPass, LineColor(kRed) );
-  _work->pdf("pdfPass")->plotOn( pPass, Components("bkgPass"),LineColor(kBlue),LineStyle(kDashed));
+  _work->pdf("pdfPass")->plotOn( pPass, Components("backgroundPass"),LineColor(kBlue),LineStyle(kDashed));
   _work->data("hPass") ->plotOn( pPass );
   
   _work->data("hFail") ->plotOn( pFail );
   _work->pdf("pdfFail")->plotOn( pFail, LineColor(kRed) );
-  _work->pdf("pdfFail")->plotOn( pFail, Components("bkgFail"),LineColor(kBlue),LineStyle(kDashed));
+  _work->pdf("pdfFail")->plotOn( pFail, Components("backgroundFail"),LineColor(kBlue),LineStyle(kDashed));
   _work->data("hFail") ->plotOn( pFail );
 
   TCanvas c("c","c",1100,450);
@@ -187,14 +149,20 @@ void tnpFitter::fits(bool mcTruth,string title) {
   TPad *padText = (TPad*)c.GetPad(1);
   textParForCanvas( resPass,resFail, padText );
   c.cd(2); pPass->Draw();
+  double chiPassVal=pPass->chiSquare("pdfPass_Norm[x]_Range[fit_nll_pdfPass_hPass]_NormRange[fit_nll_pdfPass_hPass]","h_hPass");
+  TText chiPass(0.1,0.02,Form("chi/n=%f",chiPassVal)); chiPass.SetName("chiPass");chiPass.SetNDC();chiPass.Draw();
+  TText scorePass(0.6,0.02,Form("score=%f",chiPassVal/(1+_work->var("nSigP")->getVal()*0.001/nBins)));scorePass.SetName("scorePass");scorePass.SetNDC();scorePass.Draw();
   c.cd(3); pFail->Draw();
-
+  double chiFailVal=pFail->chiSquare("pdfFail_Norm[x]_Range[fit_nll_pdfFail_hFail]_NormRange[fit_nll_pdfFail_hFail]","h_hFail");
+  TText chiFail(0.1,0.02,Form("chi/n=%f",chiFailVal));chiFail.SetName("chiFail");chiFail.SetNDC();chiFail.Draw();
+  TText scoreFail(0.6,0.02,Form("score=%f",chiFailVal/(1+_work->var("nSigF")->getVal()*0.001/nBins+_work->var("nBkgF")->getVal()*0.000005)));scoreFail.SetName("scoreFail");scoreFail.SetNDC();scoreFail.Draw();
   _fOut->cd();
-  c.Write(TString::Format("%s_Canv",_histname_base.c_str()),TObject::kOverwrite);
-  resPass->Write(TString::Format("%s_resP",_histname_base.c_str()),TObject::kOverwrite);
-  resFail->Write(TString::Format("%s_resF",_histname_base.c_str()),TObject::kOverwrite);
+  c.Write(TString::Format("%s_Canv",_histname_base.c_str()),TObject::kWriteDelete);
+  resPass->Write(TString::Format("%s_resP",_histname_base.c_str()),TObject::kWriteDelete);
+  resFail->Write(TString::Format("%s_resF",_histname_base.c_str()),TObject::kWriteDelete);
 
-  
+  if(doCheck) return (TCanvas*)c.Clone();
+  else return NULL;
 }
 
 
