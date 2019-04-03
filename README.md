@@ -5,13 +5,25 @@
 
 >python tnpEGM_fitter.py etc/config/muon2017idiso.py --craeteBins
 
->python tnpEGM_fitter.py etc/config/muon2017idiso.py --createHist --condor -n 20
+>python tnpEGM_fitter.py etc/config/muon2017idiso.py --createHists --condor -n 20
 
 >python tnpEGM_fitter.py etc/config/muon2017idiso.py --doFit --condor
 
 >python tnpEGM_fitter.py etc/config/muon2017idiso.py --select --condor
 
 >python tnpEGM_fitter.py etc/config/muon2017idiso.py --doPlot --condor
+
+>python tnpEGM_fitter.py etc/config/muon2017idiso.py --sumUp --condor
+
+Or
+
+>python tnpEGM_fitter.py etc/config/muon2017idiso.py --createBins createHists --doFit --select --doPlot --sumUp --condor -n 20
+
+
+## To do
+smart way to guess functions  
+manage memory  
+2D histogram  
 
 
 # egm_tnp_analysis (Old message)

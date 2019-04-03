@@ -35,10 +35,6 @@ Expo1a=["Exponential::backgroundPass(x, lp[-0.5,-1,0.1])",
         "Exponential::backgroundFail(x, lf[-0.1,-1,0.1])",]
 Expo1b=["Exponential::backgroundPass(x, lp[-0.0,-1,0.1])",
        "Exponential::backgroundFail(x, lf[-0.1,-1,0.1])",]
-Expo1c=["Exponential::backgroundPass(x, lp[-0.1,-1,0.1])",
-       "Exponential::backgroundFail(x, lf[-0.5,-1,0.1])",]
-Expo1d=["Exponential::backgroundPass(x, lp[-0.1,-1,0.1])",
-       "Exponential::backgroundFail(x, lf[-0.0,-1,0.1])",]
 CMS1=["RooCMSShape::backgroundPass(x, alphaPass[70.,60.,90.], betaPass[0.02, 0.01,0.1], gammaPass[0.001, 0.,0.1], peakPass[90.0])",
      "RooCMSShape::backgroundFail(x, alphaFail[70.,60.,90.], betaFail[0.02, 0.01,0.1], gammaFail[0.001, 0.,0.1], peakPass)",]
 CMS1a=["RooCMSShape::backgroundPass(x, alphaPass[80.,60.,90.], betaPass[0.02, 0.01,0.1], gammaPass[0.001, 0.,0.1], peakPass[90.0])",
@@ -95,8 +91,6 @@ fitfunctions={
     'vpv1hPlusExpo1':vpv1h+Expo1,
     'vpv1PlusExpo1a':vpv1+Expo1a,
     'vpv1PlusExpo1b':vpv1+Expo1b,
-    'vpv1PlusExpo1c':vpv1+Expo1c,
-    'vpv1PlusExpo1d':vpv1+Expo1d,
 
     'vpv1PlusCMS1':vpv1+CMS1,
     'vpv1aPlusCMS1':vpv1a+CMS1,
@@ -159,6 +153,10 @@ flags = {
     'mc_tagiso020'    : tnpSample([wonjuntnpdir+'TnPTree_94X_DYJetsToLL_M50_Madgraph_weighted_basicskim.root'],eventexp.replace('tag_combRelIsoPF04dBeta < 0.15','tag_combRelIsoPF04dBeta < 0.2'),fitfunctions,40,70,130),
 }
 
+systematicDef = {
+    'data' : [['data_mass60130','data_mass70120'],['data_massbin30','data_massbin50'],['data_tagiso010','data_tagiso020']],
+    'mc' : [['mc_mass60130','mc_mass70120'],['mc_massbin30','mc_massbin50'],['mc_tagiso010','mc_tagiso020']]
+}
 
 #############################################################
 ########## bining definition  [can be nD bining]

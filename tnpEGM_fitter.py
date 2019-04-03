@@ -89,7 +89,7 @@ if args.checkBins:
             print tnpBins['bins'][ib]['name']
             print '  - cut: ',tnpBins['bins'][ib]['cut']
     sys.exit(0)
-    
+
 if args.createBins:
     print_step('createBins')
     for flag,sample in tnpConf.flags.items() if args.flag is None else [(args.flag,tnpConf.flags[args.flag])]:
@@ -101,8 +101,6 @@ if args.createBins:
         pickle.dump( tnpBins, open( '%s/bining.pkl'%(outputDirectory),'wb') )
         print 'created dir: %s ' % outputDirectory
         print 'bining created successfully... '
-    sys.exit(0)
-
 
 
 ####################################################################
@@ -129,17 +127,11 @@ if args.createHists:
             tnpBins = pickle.load( open( '%s/%s/bining.pkl'%(tnpConf.baseOutDir,flag),'rb') )
             tnpHist.makePassFailHistograms( sample.paths, 'tpTree/fitter_tree', histfile+ ('.condortmp'+str(args.ijob) if args.subjob else ''),tnpConf.passcondition, tnpBins, var,None,args.njob,args.ijob)
             
-    sys.exit(0)
 
 
 ####################################################################
 ##### Actual Fitter
 ####################################################################
-#tnpBins = pickle.load( open( '%s/bining.pkl'%(outputDirectory),'rb') )
-#outputDirectory = '%s/%s/' % (tnpConf.baseOutDir,args.flag)
-#flag.histFile='%s/%s_hist.root' % ( outputDirectory , args.flag )
-#flag=tnpConf.flags[args.flag]
-#flag.fitFile='%s/%s_fit.root' % ( outputDirectory,args.flag )
 if  args.doFit:
     print_step('doFit')
     if args.condor:
@@ -172,6 +164,8 @@ if args.select:
         for flag,sample in tnpConf.flags.items() if args.flag is None else [(args.flag,tnpConf.flags[args.flag])]:
             waiting_list.append(subprocess.check_output('condor_submit ARGU="'+args.settings+' --select --flag '+flag+' --subjob" etc/scripts/condor.jds -queue 1|tail -n 1|awk \'{print $NF}\'|sed "s/[^0-9]//g"',shell=True).strip())
         condor_wait(waiting_list)
+        for jobid in waiting_list: os.system('cat log/out.'+jobid)
+
     else:
         for flag,sample in tnpConf.flags.items() if args.flag is None else [(args.flag,tnpConf.flags[args.flag])]:
             print flag
@@ -191,10 +185,11 @@ if args.select:
                     scorePass,scoreFail=tnpRoot.GetScorePassFail(fitfile.replace('.root','_'+ifit+'.root'),tnpBins['bins'][ib]['name'])
                     nBkgPass=tnpRoot.GetRooFitPar(fitfile.replace('.root','_'+ifit+'.root'),tnpBins['bins'][ib]['name']+'_resP','nBkgP')
                     nBkgFail=tnpRoot.GetRooFitPar(fitfile.replace('.root','_'+ifit+'.root'),tnpBins['bins'][ib]['name']+'_resF','nBkgF')
+                    nSigFail=tnpRoot.GetRooFitPar(fitfile.replace('.root','_'+ifit+'.root'),tnpBins['bins'][ib]['name']+'_resF','nSigF')
                     thisval=nBkgPass+nBkgFail
                     thistempval=scorePass+scoreFail
                     report.write('%.1f\t'%thisval)
-                    if thisval>bestval and scorePass<4 and scoreFail<4:
+                    if thisval>bestval and scorePass<4 and scoreFail<4 and nSigFail>15:
                         bestval=thisval
                         bestfit=ifit
                     if thistempval<tempval:
@@ -239,57 +234,37 @@ if  args.doPlot:
 ####################################################################
 ##### dumping egamma txt file 
 ####################################################################
+#tnpBins = pickle.load( open( '%s/bining.pkl'%(outputDirectory),'rb') )
+#outputDirectory = '%s/%s/' % (tnpConf.baseOutDir,args.flag)
+#flag.histFile='%s/%s_hist.root' % ( outputDirectory , args.flag )
+#flag=tnpConf.flags[args.flag]
+#flag.fitFile='%s/%s_fit.root' % ( outputDirectory,args.flag )
 if args.sumUp:
-    sampleToFit.dump()
-    info = {
-        'data'        : sampleToFit.histFile,
-        'dataNominal' : sampleToFit.nominalFit,
-        'dataAltSig'  : sampleToFit.altSigFit ,
-        'dataAltBkg'  : sampleToFit.altBkgFit ,
-        'mcNominal'   : sampleToFit.mcRef.histFile,
-        'mcAlt'       : None,
-        'tagSel'      : None
-        }
-
-    if not tnpConf.samplesDef['mcAlt' ] is None:
-        info['mcAlt'    ] = tnpConf.samplesDef['mcAlt' ].histFile
-    if not tnpConf.samplesDef['tagSel'] is None:
-        info['tagSel'   ] = tnpConf.samplesDef['tagSel'].histFile
-
-    effis = None
-    effFileName ='%s/egammaEffi.txt' % outputDirectory 
-    fOut = open( effFileName,'w')
     
-    for ib in range(len(tnpBins['bins'])):
-        effis = tnpRoot.getAllEffi( info, tnpBins['bins'][ib] )
+    for centralflag,syss in tnpConf.systematicDef.items():
+        effFileName ='%s/muonEffi_%s.txt' % (tnpConf.baseOutDir,centralflag)
+        fOut = open( effFileName,'w')
+        tnpBins = pickle.load( open( '%s/%s/bining.pkl'%(tnpConf.baseOutDir,centralflag),'rb') )
+        for ib in range(len(tnpBins['bins'])):
+            if ib == 0 :
+                fOut.write('ibin\tcentral\tstaterr\tsystematics\n')
+            fOut.write(str(ib)+'\t')
+#           fOut.write(tnpBins['bins'][ib]['name']+'\t')
 
-        ### formatting assuming 2D bining -- to be fixed        
-        v1Range = tnpBins['bins'][ib]['title'].split(';')[1].split('<')
-        v2Range = tnpBins['bins'][ib]['title'].split(';')[2].split('<')
-        if ib == 0 :
-            astr = '### var1 : %s' % v1Range[1]
-            print astr
-            fOut.write( astr + '\n' )
-            astr = '### var2 : %s' % v2Range[1]
-            print astr
-            fOut.write( astr + '\n' )
-            
-        astr =  '%+8.3f\t%+8.3f\t%+8.3f\t%+8.3f\t%5.3f\t%5.3f\t%5.3f\t%5.3f\t%5.3f\t%5.3f\t%5.3f\t%5.3f' % (
-            float(v1Range[0]), float(v1Range[2]),
-            float(v2Range[0]), float(v2Range[2]),
-            effis['dataNominal'][0],effis['dataNominal'][1],
-            effis['mcNominal'  ][0],effis['mcNominal'  ][1],
-            effis['dataAltBkg' ][0],
-            effis['dataAltSig' ][0],
-            effis['mcAlt' ][0],
-            effis['tagSel'][0],
-            )
-        print astr
-        fOut.write( astr + '\n' )
-    fOut.close()
+            centralval,centralerr = tnpRoot.GetEffi( '%s/%s/%s_fit_best.root'%(tnpConf.baseOutDir,centralflag,centralflag),tnpBins['bins'][ib]['name'])
+            fOut.write('%.4f\t%.4f\t'%(centralval,centralerr))
+            for sys in syss:
+                maxdiff=0
+                for flag in sys:
+                    thisval,thiserr = tnpRoot.GetEffi('%s/%s/%s_fit_best.root'%(tnpConf.baseOutDir,flag,flag),tnpBins['bins'][ib]['name'])
+                    diff=thisval-centralval
+                    if abs(maxdiff)<abs(diff): maxdiff=diff
+                fOut.write('%.4f\t'%diff)
+            fOut.write('\n')
+        fOut.close()
+        print 'Effis saved in file : ',  effFileName
 
-    print 'Effis saved in file : ',  effFileName
-    import libPython.EGammaID_scaleFactors as egm_sf
-    egm_sf.doEGM_SFs(effFileName,sampleToFit.lumi)
+#    import libPython.EGammaID_scaleFactors as egm_sf
+#    egm_sf.doEGM_SFs(effFileName,sampleToFit.lumi)
 
 

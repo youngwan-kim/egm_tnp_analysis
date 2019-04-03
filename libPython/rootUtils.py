@@ -3,6 +3,13 @@ import math
 from fitUtils import *
 #from fitSimultaneousUtils import *
 
+def GetEffi( filename, binname ):
+    rootfile = rt.TFile( filename, 'read' )
+    canvas = rootfile.Get('%s_Canv'%binname)
+    reports=canvas.GetPad(1).GetPrimitive("reportTPave").GetLine(1).GetTitle().split()
+    rootfile.Close()
+    return float(reports[3]), float(reports[5])
+
 def GetChiPassFail(filename,binname):
     canvas=GetTObject(filename,binname+'_Canv')
     chiPass=canvas.GetPad(2).GetPrimitive('chiPass').GetTitle()
@@ -43,15 +50,10 @@ def histPlotter( filename, tnpBin, plotDir ):
 
 
 def computeEffi( n1,n2,e1,e2):
-    effout = []
     eff   = n1/(n1+n2)
     e_eff = 1/(n1+n2)*math.sqrt(e1*e1*n2*n2+e2*e2*n1*n1)/(n1+n2)
     if e_eff < 0.001 : e_eff = 0.001
-
-    effout.append(eff)
-    effout.append(e_eff)
-    
-    return effout
+    return eff,e_eff
 
 
 import os.path

@@ -7,3 +7,4 @@ export TNP_BASE=`pwd`
 export PYTHON27PATH=$PYTHON27PATH:/usr/lib64/python2.7/site-packages
 export PYTHONPATH=${PYTHONPATH#/opt/ohpc/pub/apps/root_6_12_06/lib}
 mkdir -p log
+make

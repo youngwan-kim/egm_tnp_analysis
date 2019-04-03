@@ -55,7 +55,7 @@ tnpFitter::tnpFitter(TString filein, std::string histname,double xmin, double xm
   hPass->SetDirectory(0);
   hFail->SetDirectory(0);
   f.Close();
-  nBins=hPass->GetNBinsX();
+  nBins=hPass->GetNbinsX();
 
   RooMsgService::instance().setGlobalKillBelow(RooFit::FATAL);
   RooMsgService::instance().setSilentMode(true);
@@ -193,7 +193,7 @@ void tnpFitter::textParForCanvas(RooFitResult *resP, RooFitResult *resF,TPad *p)
 
   text1->AddText(TString::Format("* fit status pass: %d, fail : %d",resP->status(),resF->status()));
   text1->AddText(TString::Format("* eff = %1.4f #pm %1.4f",eff,e_eff));
-
+  text1->SetName("reportTPave");
   //  text->SetTextSize(0.06);
 
 //  text->AddText("* Passing parameters");
