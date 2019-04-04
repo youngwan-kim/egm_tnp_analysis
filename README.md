@@ -3,7 +3,7 @@
 
 >source setup.sh
 
->python tnpEGM_fitter.py etc/config/muon2017idiso.py --craeteBins
+>python tnpEGM_fitter.py etc/config/muon2017idiso.py --createBins
 
 >python tnpEGM_fitter.py etc/config/muon2017idiso.py --createHists --condor -n 20
 

@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import time
 import ROOT as rt
+import math
 
 parser = argparse.ArgumentParser(description='tnp EGM fitter')
 parser.add_argument('--checkBins'  , action='store_true'  , help = 'check  bining definition')
@@ -247,22 +248,44 @@ if args.sumUp:
         tnpBins = pickle.load( open( '%s/%s/bining.pkl'%(tnpConf.baseOutDir,centralflag),'rb') )
         for ib in range(len(tnpBins['bins'])):
             if ib == 0 :
-                fOut.write('ibin\tcentral\tstaterr\tsystematics\n')
-            fOut.write(str(ib)+'\t')
-#           fOut.write(tnpBins['bins'][ib]['name']+'\t')
-
+                fOut.write('ibin\tcentral\tstaterr\ttotSys\tsys\n')
+            line=[]
+            line.append(str(ib))
             centralval,centralerr = tnpRoot.GetEffi( '%s/%s/%s_fit_best.root'%(tnpConf.baseOutDir,centralflag,centralflag),tnpBins['bins'][ib]['name'])
-            fOut.write('%.4f\t%.4f\t'%(centralval,centralerr))
+            line+=['%.4f'%centralval,'%.4f'%centralerr]
+            totalsys=0
             for sys in syss:
                 maxdiff=0
                 for flag in sys:
                     thisval,thiserr = tnpRoot.GetEffi('%s/%s/%s_fit_best.root'%(tnpConf.baseOutDir,flag,flag),tnpBins['bins'][ib]['name'])
                     diff=thisval-centralval
+                    line.append('%+.4f'%diff)
                     if abs(maxdiff)<abs(diff): maxdiff=diff
-                fOut.write('%.4f\t'%diff)
-            fOut.write('\n')
+                totalsys+=maxdiff*maxdiff
+            line.insert(3,'%.4f'%math.sqrt(totalsys))
+            fOut.write("\t".join(line)+'\n')
         fOut.close()
         print 'Effis saved in file : ',  effFileName
+
+    fOut=rt.TFile('%s/result.root'%(tnpConf.baseOutDir),'recreate')
+    effihists=[]
+    for centralflag,syss in tnpConf.systematicDef.items():
+        effFileName ='%s/muonEffi_%s.txt' % (tnpConf.baseOutDir,centralflag)
+        tnpBins = pickle.load( open( '%s/%s/bining.pkl'%(tnpConf.baseOutDir,centralflag),'rb') )
+        effihist=tnpRoot.GetEffiHist(effFileName,tnpBins)
+        effihist.Write()
+        for ib in range(effihist.GetXaxis().GetNbins()):
+            effihist.ProjectionY('eta%.2fto%.2'%(effihist.GetXaxis().GetBinLowEdge(ib+1),effihist.GetXaxis().GetBinLowEdge(ib+2)),ib+1,ib+1).Write()
+        for ib in range(effihist.GetYaxis().GetNbins()):
+            effihist.ProjectionX('pt%dto%d'%(effihist.GetYaxis().GetBinLowEdge(ib+1),effihist.GetYaxis().GetBinLowEdge(ib+2)),ib+1,ib+1).Write()
+        effihists.append(effihist)
+    
+    if len(effihists)==2:
+        sfhist=effihists[0].Clone()
+        sfhist.Divide(effihists[1])
+        sfhist.SetNameTitle('SF_eta_pt','SF_eta_pt')
+        sfhist.Write()
+    fOut.Close()
 
 #    import libPython.EGammaID_scaleFactors as egm_sf
 #    egm_sf.doEGM_SFs(effFileName,sampleToFit.lumi)

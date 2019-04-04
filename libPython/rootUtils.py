@@ -1,6 +1,7 @@
 import ROOT as rt
 import math
 from fitUtils import *
+import array as ar
 #from fitSimultaneousUtils import *
 
 def GetEffi( filename, binname ):
@@ -39,6 +40,28 @@ def MoveTObject(filename1,filename2,objname):
     if obj:
         obj.Write(objname)
     rootfile.Close()
+
+def GetEffiHist(filename,bindef):
+    ptlist=[]
+    etalist=[]
+    for ib in range(len(bindef['bins'])):
+        ptlist.append(bindef['bins'][ib]['vars']['pt']['max'])
+        ptlist.append(bindef['bins'][ib]['vars']['pt']['min'])
+        etalist.append(bindef['bins'][ib]['vars']['eta']['max'])
+        etalist.append(bindef['bins'][ib]['vars']['eta']['min'])
+    ptlist=sorted(list(set(ptlist)))
+    etalist=sorted(list(set(etalist)))
+    effihist=rt.TH2D('%s_eta_pt'%(filename.replace('.','/').split('/')[-2]),'%s_eta_pt'%(filename.replace('.','/').split('/')[-2]),len(etalist)-1,ar.array('d',etalist),len(ptlist)-1,ar.array('d',ptlist))
+    f=open(filename,'r')
+    for line in f.readlines():
+        words=line.split()
+        if not words[0].isdigit(): continue
+        ib=int(words[0])
+        effihist.SetBinContent(effihist.FindBin(bindef['bins'][ib]['vars']['eta']['min'],bindef['bins'][ib]['vars']['pt']['min']),float(words[1]))
+        effihist.SetBinError(effihist.FindBin(bindef['bins'][ib]['vars']['eta']['min'],bindef['bins'][ib]['vars']['pt']['min']),math.sqrt(float(words[2])*float(words[2])+float(words[3])*float(words[3])))
+    effihist.SetOption('colz text')
+    return effihist
+
 
 def histPlotter( filename, tnpBin, plotDir ):
     print 'opening ', filename
