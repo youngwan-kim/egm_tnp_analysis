@@ -130,27 +130,30 @@ fitfunctions_altsig={
 }
 
 baseOutDir = 'results/muon2017idiso/'
-passcondition='Medium > 0.5 && relTkIso < 0.10'
-eventexp='tag_IsoMu24==1 && tag_pt > 26 && mass > 60 && mass < 130 && tag_charge*charge < 0 && -0.2 < tag_dB && tag_dB < 0.2 && tag_combRelIsoPF04dBeta < 0.15 && -0.5 < tag_dzPV && tag_dzPV < 0.5 && pair_probeMultiplicity_Pt10_M60140==1 '
-wonjuntnpdir='/data1/wonjun/public/TnPTreeZ_17Nov2017_SingleMuon_Run2017/'
+#passcondition='Medium > 0.5 && relTkIso < 0.10'
+#eventexp='tag_IsoMu24==1 && tag_pt > 26 && mass > 60 && mass < 130 && tag_charge*charge < 0 && -0.2 < tag_dB && tag_dB < 0.2 && tag_combRelIsoPF04dBeta < 0.15 && -0.5 < tag_dzPV && tag_dzPV < 0.5 && pair_probeMultiplicity_Pt10_M60140==1 '
+#wonjuntnpdir='/data1/wonjun/public/TnPTreeZ_17Nov2017_SingleMuon_Run2017/'
+passcondition='DoubleIsoMu17Mu8_IsoMu17leg | DoubleIsoMu17TkMu8_IsoMu17leg'
+eventexp='tag_IsoMu27==1 && tag_pt > 29 && mass > 60 && mass < 130 && tag_charge*charge < 0 && -0.2 < tag_dB && tag_dB < 0.2 && tag_combRelIsoPF04dBeta < 0.15 && -0.5 < tag_dzPV && tag_dzPV < 0.5 && pair_probeMultiplicity_Pt10_M60140==1 && Medium > 0.5 && relTkIso < 0.10 && charge > 0'
+wonjuntnpdir='/data1/wonjun/public/MuonTnPFitter_Won/Workspace/'
 
 flags = {
-    'data'    : tnpSample([wonjuntnpdir+'TnPTree_17Nov2017_SingleMuon_Run2017BCDEF_Full_GoldenJSON.root'],eventexp,fitfunctions,40,70,130),
-#    'data_altsig'    : tnpSample([wonjuntnpdir+'TnPTree_17Nov2017_SingleMuon_Run2017BCDEF_Full_GoldenJSON.root'],eventexp,fitfunctions_altsig,40,70,130),
-    'data_mass60130'    : tnpSample([wonjuntnpdir+'TnPTree_17Nov2017_SingleMuon_Run2017BCDEF_Full_GoldenJSON.root'],eventexp,fitfunctions,40,60,130),
-    'data_mass70120'    : tnpSample([wonjuntnpdir+'TnPTree_17Nov2017_SingleMuon_Run2017BCDEF_Full_GoldenJSON.root'],eventexp,fitfunctions,40,70,120),
-    'data_massbin30'    : tnpSample([wonjuntnpdir+'TnPTree_17Nov2017_SingleMuon_Run2017BCDEF_Full_GoldenJSON.root'],eventexp,fitfunctions,30,70,130),
-    'data_massbin50'    : tnpSample([wonjuntnpdir+'TnPTree_17Nov2017_SingleMuon_Run2017BCDEF_Full_GoldenJSON.root'],eventexp,fitfunctions,50,70,130),
-    'data_tagiso010'    : tnpSample([wonjuntnpdir+'TnPTree_17Nov2017_SingleMuon_Run2017BCDEF_Full_GoldenJSON.root'],eventexp.replace('tag_combRelIsoPF04dBeta < 0.15','tag_combRelIsoPF04dBeta < 0.1'),fitfunctions,40,70,130),
-    'data_tagiso020'    : tnpSample([wonjuntnpdir+'TnPTree_17Nov2017_SingleMuon_Run2017BCDEF_Full_GoldenJSON.root'],eventexp.replace('tag_combRelIsoPF04dBeta < 0.15','tag_combRelIsoPF04dBeta < 0.2'),fitfunctions,40,70,130),
-    'mc'    : tnpSample([wonjuntnpdir+'TnPTree_94X_DYJetsToLL_M50_Madgraph_weighted_basicskim.root'],eventexp,fitfunctions,40,70,130),
+    'data'    : tnpSample([wonjuntnpdir+'example_v05/Input/Input_Final.root'],eventexp,fitfunctions,40,70,130),
+#    'data_altsig'    : tnpSample([wonjuntnpdir+'example_v05/Input/Input_Final.root'],eventexp,fitfunctions_altsig,40,70,130),
+    'data_mass60130'    : tnpSample([wonjuntnpdir+'example_v05/Input/Input_Final.root'],eventexp,fitfunctions,40,60,130),
+    'data_mass70120'    : tnpSample([wonjuntnpdir+'example_v05/Input/Input_Final.root'],eventexp,fitfunctions,40,70,120),
+    'data_massbin30'    : tnpSample([wonjuntnpdir+'example_v05/Input/Input_Final.root'],eventexp,fitfunctions,30,70,130),
+    'data_massbin50'    : tnpSample([wonjuntnpdir+'example_v05/Input/Input_Final.root'],eventexp,fitfunctions,50,70,130),
+    'data_tagiso010'    : tnpSample([wonjuntnpdir+'example_v05/Input/Input_Final.root'],eventexp.replace('tag_combRelIsoPF04dBeta < 0.15','tag_combRelIsoPF04dBeta < 0.1'),fitfunctions,40,70,130),
+    'data_tagiso020'    : tnpSample([wonjuntnpdir+'example_v05/Input/Input_Final.root'],eventexp.replace('tag_combRelIsoPF04dBeta < 0.15','tag_combRelIsoPF04dBeta < 0.2'),fitfunctions,40,70,130),
+#    'mc'    : tnpSample([wonjuntnpdir+'TnPTree_94X_DYJetsToLL_M50_Madgraph_weighted_basicskim.root'],eventexp,fitfunctions,40,70,130),
 #    'mc_altsig'    : tnpSample([wonjuntnpdir+'TnPTree_94X_DYJetsToLL_M50_Madgraph_weighted_basicskim.root'],eventexp,fitfunctions_altsig,40,70,130),
-    'mc_mass60130'    : tnpSample([wonjuntnpdir+'TnPTree_94X_DYJetsToLL_M50_Madgraph_weighted_basicskim.root'],eventexp,fitfunctions,40,60,130),
-    'mc_mass70120'    : tnpSample([wonjuntnpdir+'TnPTree_94X_DYJetsToLL_M50_Madgraph_weighted_basicskim.root'],eventexp,fitfunctions,40,70,120),
-    'mc_massbin30'    : tnpSample([wonjuntnpdir+'TnPTree_94X_DYJetsToLL_M50_Madgraph_weighted_basicskim.root'],eventexp,fitfunctions,30,70,130),
-    'mc_massbin50'    : tnpSample([wonjuntnpdir+'TnPTree_94X_DYJetsToLL_M50_Madgraph_weighted_basicskim.root'],eventexp,fitfunctions,50,70,130),
-    'mc_tagiso010'    : tnpSample([wonjuntnpdir+'TnPTree_94X_DYJetsToLL_M50_Madgraph_weighted_basicskim.root'],eventexp.replace('tag_combRelIsoPF04dBeta < 0.15','tag_combRelIsoPF04dBeta < 0.1'),fitfunctions,40,70,130),
-    'mc_tagiso020'    : tnpSample([wonjuntnpdir+'TnPTree_94X_DYJetsToLL_M50_Madgraph_weighted_basicskim.root'],eventexp.replace('tag_combRelIsoPF04dBeta < 0.15','tag_combRelIsoPF04dBeta < 0.2'),fitfunctions,40,70,130),
+#    'mc_mass60130'    : tnpSample([wonjuntnpdir+'TnPTree_94X_DYJetsToLL_M50_Madgraph_weighted_basicskim.root'],eventexp,fitfunctions,40,60,130),
+#    'mc_mass70120'    : tnpSample([wonjuntnpdir+'TnPTree_94X_DYJetsToLL_M50_Madgraph_weighted_basicskim.root'],eventexp,fitfunctions,40,70,120),
+#    'mc_massbin30'    : tnpSample([wonjuntnpdir+'TnPTree_94X_DYJetsToLL_M50_Madgraph_weighted_basicskim.root'],eventexp,fitfunctions,30,70,130),
+#    'mc_massbin50'    : tnpSample([wonjuntnpdir+'TnPTree_94X_DYJetsToLL_M50_Madgraph_weighted_basicskim.root'],eventexp,fitfunctions,50,70,130),
+#    'mc_tagiso010'    : tnpSample([wonjuntnpdir+'TnPTree_94X_DYJetsToLL_M50_Madgraph_weighted_basicskim.root'],eventexp.replace('tag_combRelIsoPF04dBeta < 0.15','tag_combRelIsoPF04dBeta < 0.1'),fitfunctions,40,70,130),
+#    'mc_tagiso020'    : tnpSample([wonjuntnpdir+'TnPTree_94X_DYJetsToLL_M50_Madgraph_weighted_basicskim.root'],eventexp.replace('tag_combRelIsoPF04dBeta < 0.15','tag_combRelIsoPF04dBeta < 0.2'),fitfunctions,40,70,130),
 }
 
 systematicDef = {
@@ -162,8 +165,8 @@ systematicDef = {
 ########## bining definition  [can be nD bining]
 #############################################################
 biningDef = [
-    { 'var' : 'eta' , 'type': 'float', 'bins': [-2.4, -2.1, -1.6, -1.2, -0.9, -0.3, -0.2, 0.2, 0.3, 0.9, 1.2, 1.6, 2.1, 2.4] },
-    { 'var' : 'pt' , 'type': 'float', 'bins': [10, 15, 20, 25, 30, 40, 50, 60, 120] },
+    { 'var' : 'eta' , 'type': 'float', 'bins': [-2.4, -2.1, -1.85, -1.6, -1.4, -1.2, -0.9, -0.6, -0.3, -0.2, 0.0, 0.2, 0.3, 0.6, 0.9, 1.2, 1.4, 1.6, 1.85, 2.1, 2.4] },
+    { 'var' : 'pt' , 'type': 'float', 'bins': [20, 25, 30, 35, 40, 45, 50, 60, 120] },
 ]
 
 #############################################################
