@@ -275,9 +275,9 @@ if args.sumUp:
         effihist=tnpRoot.GetEffiHist(effFileName,tnpBins)
         effihist.Write()
         for ib in range(effihist.GetXaxis().GetNbins()):
-            effihist.ProjectionY('eta%.2fto%.2f'%(effihist.GetXaxis().GetBinLowEdge(ib+1),effihist.GetXaxis().GetBinLowEdge(ib+2)),ib+1,ib+1).Write()
+            effihist.ProjectionY('%s_eta%.2fto%.2f'%(centralflag,effihist.GetXaxis().GetBinLowEdge(ib+1),effihist.GetXaxis().GetBinLowEdge(ib+2)),ib+1,ib+1).Write()
         for ib in range(effihist.GetYaxis().GetNbins()):
-            effihist.ProjectionX('pt%dto%d'%(effihist.GetYaxis().GetBinLowEdge(ib+1),effihist.GetYaxis().GetBinLowEdge(ib+2)),ib+1,ib+1).Write()
+            effihist.ProjectionX('%s_pt%dto%d'%(centralflag,effihist.GetYaxis().GetBinLowEdge(ib+1),effihist.GetYaxis().GetBinLowEdge(ib+2)),ib+1,ib+1).Write()
         effihists.append(effihist)
     
     if len(effihists)==2:
