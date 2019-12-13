@@ -2,19 +2,19 @@
 
 ## Usage
 
-This is modified egm_tnp_analysis package to use condor in tamsa server.
->source setup.sh
->python tnpEGM_fitter.py etc/config/AFBElectronID2018.py --flag MediumID_QPlus --createBins
->python tnpEGM_fitter.py etc/config/AFBElectronID2018.py --flag MediumID_QPlus --createHists -n 30
->python tnpEGM_fitter.py etc/config/AFBElectronID2018.py --flag MediumID_QPlus --doFit -n 30
->python tnpEGM_fitter.py etc/config/AFBElectronID2018.py --flag MediumID_QPlus --doFit --mcSig --altSig -n 30 
->python tnpEGM_fitter.py etc/config/AFBElectronID2018.py --flag MediumID_QPlus --doFit --altSig -n 30
->python tnpEGM_fitter.py etc/config/AFBElectronID2018.py --flag MediumID_QPlus --doFit --altBkg -n 30
->python tnpEGM_fitter.py etc/config/AFBElectronID2018.py --flag MediumID_QPlus --sumUp
+This is modified egm_tnp_analysis package to use condor in tamsa server.  
+>source setup.sh  
+>python tnpEGM_fitter.py etc/config/AFBElectronID2018.py --flag MediumID_QPlus --createBins  
+>python tnpEGM_fitter.py etc/config/AFBElectronID2018.py --flag MediumID_QPlus --createHists -n 30  
+>python tnpEGM_fitter.py etc/config/AFBElectronID2018.py --flag MediumID_QPlus --doFit -n 30  
+>python tnpEGM_fitter.py etc/config/AFBElectronID2018.py --flag MediumID_QPlus --doFit --mcSig --altSig -n 30  
+>python tnpEGM_fitter.py etc/config/AFBElectronID2018.py --flag MediumID_QPlus --doFit --altSig -n 30  
+>python tnpEGM_fitter.py etc/config/AFBElectronID2018.py --flag MediumID_QPlus --doFit --altBkg -n 30  
+>python tnpEGM_fitter.py etc/config/AFBElectronID2018.py --flag MediumID_QPlus --sumUp  
 
-For different efficiency measurement, check these files
->etc/config/*.py
->etc/input/tnpSampleDef.py
+For your own efficiency measurement, check these example files  
+>etc/config/*.py  
+>etc/input/tnpSampleDef.py  
 
 # egm_tnp_analysis (original message)
 
