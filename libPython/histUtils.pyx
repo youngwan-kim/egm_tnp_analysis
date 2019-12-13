@@ -59,6 +59,12 @@ def makePassFailHistograms( sample, flag, bindef, var ):
     ###############################
 
     tree = new TChain(sample.tree)
+    if len(sample.path)<1:
+        print 'No input files...'
+        print 'Create an empty file'
+        emptyfile = new TFile(str.encode(sample.histFile),'recreate')
+        emptyfile.Close()
+        return
 
     for p in sample.path:
         print ' adding rootfile: ', p
@@ -90,7 +96,7 @@ def makePassFailHistograms( sample, flag, bindef, var ):
         if not sample.cut is None :
             cuts = '%s && %s' % (cuts,sample.cut)
 
-        if sample.isMC and not sample.weight is None:
+        if not sample.weight is None:
             cutBin = '( %s ) * %s ' % (cuts, sample.weight)
             if sample.maxWeight < 999:
                 cutBin = '( %s ) * (%s < %f ? %s : 1.0 )' % (cuts, sample.weight,sample.maxWeight,sample.weight)
@@ -113,8 +119,8 @@ def makePassFailHistograms( sample, flag, bindef, var ):
     ######################################
 
     # Find out with variables are used to activate the corresponding branches
-    replace_patterns = ['&', '|', '-', 'cos(', 'sqrt(', 'fabs(', 'abs(', '(', ')', '>', '<', '=', '!', '*', '/']
-    branches = " ".join(cutBinList) + " pair_mass " + flag
+    replace_patterns = ['&', '|', '-', 'cos(', 'sqrt(', 'fabs(', 'abs(', '(', ')', '>', '<', '=', '!', '*', '/', '?', ':']
+    branches = " ".join(cutBinList) + " "+sample.massName+" " + flag
     for p in replace_patterns:
         branches = branches.replace(p, ' ')
 
@@ -128,18 +134,25 @@ def makePassFailHistograms( sample, flag, bindef, var ):
         tree.SetBranchStatus(br, 1)
 
     # Set adress of pair mass
-    tree.SetBranchAddress("pair_mass", <void*>&pair_mass)
+    tree.SetBranchAddress(sample.massName, <void*>&pair_mass)
 
     ################
     # Loop over Tree
     ################
-
+    
     nevts = tree.GetEntries()
-    frac_of_nevts = nevts/20
+    startevent = 0
+    stepsize = nevts
+    if 'jobIndex' in var and 'njob' in var:
+       stepsize = nevts/var['njob']+1
+       startevent = stepsize*var['jobIndex']
+       
+    frac_of_nevts = stepsize/20
 
     print("Starting event loop to fill histograms..")
 
-    for index in range(nevts):
+    for index in range(startevent,startevent+stepsize):
+        if index >= nevts: break
         if index % frac_of_nevts == 0:
             print outcount, "%"
             outcount = outcount + 5
@@ -149,6 +162,9 @@ def makePassFailHistograms( sample, flag, bindef, var ):
         for bnidx in range(nbins):
             weight = bin_formulas[bnidx].EvalInstance(0)
             if weight:
+                if math.isnan(weight):
+                    print 'nan weight!!! move to next event'
+                    break
                 if flag_formula.EvalInstance(0):
                     hPass[bnidx].Fill(pair_mass, weight)
                 else:

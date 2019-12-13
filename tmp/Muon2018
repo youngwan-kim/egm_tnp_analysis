@@ -1,0 +1,5 @@
+./RunTnP.sh etc/config/AFBMuonIDISO2018.py MediumID_MediumTkIso_QPlus
+./RunTnP.sh etc/config/AFBMuonIDISO2018.py MediumID_MediumTkIso_QMinus
+./RunTnP.sh etc/config/AFBMuonTrigger2018.py MediumID_MediumTkIso_IsoMu24_QPlus
+./RunTnP.sh etc/config/AFBMuonTrigger2018.py MediumID_MediumTkIso_IsoMu24_QMinus
+

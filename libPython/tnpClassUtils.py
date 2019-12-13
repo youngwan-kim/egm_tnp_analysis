@@ -6,7 +6,7 @@ def mkdir(directory):
         os.makedirs(directory) 
 
 class tnpSample:
-    def __init__(self, sName, path, cut = None, lumi = -1, nEvts = -1, mcTruth = False, puTree = None, isMC = False ):
+    def __init__(self, sName, path, cut = None, lumi = -1, nEvts = -1, mcTruth = False, puTree = None, isMC = False, massName = 'pair_mass' ):
         self.path = []
         self.name = sName
         self.path.append(path)
@@ -19,6 +19,7 @@ class tnpSample:
         self.weight  = None
         self.tnpTree = None
         self.maxWeight = 999999
+        self.massName = massName
 
     def set_weight(self,weight):
         self.weight = weight

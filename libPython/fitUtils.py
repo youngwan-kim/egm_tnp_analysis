@@ -39,7 +39,7 @@ def createWorkspaceForAltSig( sample, tnpBin, tnpWorkspaceParam ):
         return tnpWorkspaceParam
 
     
-    fileref = sample.mcRef.altSigFit
+    fileref = sample.fitFile.replace(sample.name,sample.mcRef.name)
     filemc  = rt.TFile(fileref,'read')
 
     from ROOT import RooFit,RooFitResult
@@ -103,7 +103,7 @@ def histFitterNominal( sample, tnpBin, tnpWorkspaceParam ):
 
     ## setup
     fitter.useMinos()
-    rootfile = rt.TFile(sample.nominalFit,'update')
+    rootfile = rt.TFile(sample.fitFile,'update')
     fitter.setOutputFile( rootfile )
     
     ## generated Z LineShape
@@ -164,7 +164,7 @@ def histFitterAltSig( sample, tnpBin, tnpWorkspaceParam ):
     infile.Close()
 
     ## setup
-    rootfile = rt.TFile(sample.altSigFit,'update')
+    rootfile = rt.TFile(sample.fitFile,'update')
     fitter.setOutputFile( rootfile )
     
     ## generated Z LineShape
@@ -212,7 +212,7 @@ def histFitterAltBkg( sample, tnpBin, tnpWorkspaceParam ):
     infile.Close()
 
     ## setup
-    rootfile = rt.TFile(sample.altBkgFit,'update')
+    rootfile = rt.TFile(sample.fitFile,'update')
     fitter.setOutputFile( rootfile )
 #    fitter.setFitRange(65,115)
 
