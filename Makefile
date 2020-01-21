@@ -14,7 +14,13 @@ cython-build:
 .PHONY: clean
 clean:
 	rm -f -r libPython/build/
-	rm -f libPython/histUtils.so
+	rm -f libCpp/*.so
+	rm -f libCpp/*.pcm
+	rm -f libCpp/*.d
+	rm -f libPython/*.so
+	rm -f libPython/*.pyc
+	rm -f etc/config/*.pyc
+	rm -f etc/config/*.py~
 
 .PHONY: clean-cpp
 clean-cpp:

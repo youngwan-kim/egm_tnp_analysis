@@ -3,30 +3,56 @@
 
 >source setup.sh
 
->python tnpEGM_fitter.py etc/config/muon2017idiso.py --createBins
+>python tnpEGM_fitter.py etc/config/muonTnP_AFB.py --createBins
 
->python tnpEGM_fitter.py etc/config/muon2017idiso.py --createHists --condor -n 20
+>python tnpEGM_fitter.py etc/config/muonTnP_AFB.py --createHists --condor -n 20
 
->python tnpEGM_fitter.py etc/config/muon2017idiso.py --doFit --condor
+>python tnpEGM_fitter.py etc/config/muonTnP_AFB.py --doFit --condor
 
->python tnpEGM_fitter.py etc/config/muon2017idiso.py --select --condor
+>python tnpEGM_fitter.py etc/config/muonTnP_AFB.py --doPlot --condor
 
->python tnpEGM_fitter.py etc/config/muon2017idiso.py --doPlot --condor
-
->python tnpEGM_fitter.py etc/config/muon2017idiso.py --sumUp --condor
+>python tnpEGM_fitter.py etc/config/muonTnP_AFB.py --sumUp --condor
 
 Or
 
->python tnpEGM_fitter.py etc/config/muon2017idiso.py --createBins createHists --doFit --select --doPlot --sumUp --condor -n 20
+>python tnpEGM_fitter.py etc/config/muonTnP_AFB.py --createBins --createHists --doFit --doPlot --sumUp --condor -n 20
 
+## Edit Configuration files
+edit etc/config/@@@@@@@.py
+examples) muonTnP_AFB.py
+You can change muonTnP_AFB's settings. (Period, Measure, Charge)
+Or, you can make your own configuration file
+
+## Refit 
+For example, you want to refit 2,3,5,10 bins in flag data_altbkd.
+>python tnpEGM_fitter.py etc/config/muonTnP_AFB.py --doFit --doPlot --sumUp --condor --flag data_altbkd --iBin 2 3 5 10 
+You can change initial values of fit parameters in etc/config/muonTnP_AFB.py
+Also, you can change the height of peak by changing values in libCpp/histFitter.C (103~106 lines)
 
 ## To do
-smart way to guess functions  
-manage memory  
-2D histogram  
+Optimization
+Find hidden bugs
 
+## If you wanna use abseta binnings instead of eta binnings.
+substitute 'eta' -> 'abseta' in these files.
+>etc/config/muonTnP_AFB.py
+>tnpEGM_fitter.py
+>libPython/rootUtils.py	(especially, GetEffiHist function)
 
-# egm_tnp_analysis (Old message)
+## Plotting codes
+You may need to edit these if you want.
+>canvas_margin.h
+>plotter.C
+>check_chargeAsym.C
+
+## There are old configuration files. (They are used in old version when we use a bunch of fitting functions and select by eye)
+old_codes/Muon2017idiso_original_HS.py
+old_codes/MuonTnP_AFB_old.py
+old_codes/MuonTnP_ISR.py
+old_codes/tnpEGM_fitter.py
+old_codes/binbybin_selection
+
+#### egm_tnp_analysis (Old message)
 ## General note on installation
 
 This code can in principle run on your laptop but you need ROOT 6.10 or higher and RooFit installed to use some advanced features when creating histograms.
