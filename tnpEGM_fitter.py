@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 ### python specific import
 import argparse
@@ -5,7 +6,7 @@ import os
 import sys
 import pickle
 import shutil
-
+from datetime import datetime
 
 parser = argparse.ArgumentParser(description='tnp EGM fitter')
 parser.add_argument('--checkBins'  , action='store_true'  , help = 'check  bining definition')
@@ -97,9 +98,6 @@ for s in tnpConf.samplesDef.keys():
     setattr( sample, 'tree'     ,'%s/fitter_tree' % tnpConf.tnpTreeDir )
     setattr( sample, 'histFile' , '%s/%s_%s.root' % ( outputDirectory , sample.name, args.flag ) )
 
-import subprocess
-import threading
-
 if args.createHists:
 
     import libPython.histUtils as tnpHist
@@ -116,27 +114,32 @@ if args.createHists:
                 if p.endswith('.root'): 
                     newpath.append(p)
                 else:
-                    newpath.extend(subprocess.check_output('find '+p+' -type f -name \'*.root\' | sort',shell=True).split('\n'))
+                    newpath.extend(os.popen('find '+p+' -type f -name \'*.root\' | sort -V').read().split('\n'))
                     if newpath[-1]=='': newpath=newpath[:-1]
             sample.path=newpath
             if args.njob>0:
                 if args.jobIndex<0:
                     print 'submitting', args.njob, 'jobs, nmax=', args.nmax
-                    threads=[]
-                    for i in range(args.njob):
-                        cmd='condor_run -a jobbatchname=createHists_%s_%s_%s'%(os.path.splitext(os.path.basename(args.settings))[0],args.flag,sampleType)
-                        if args.nmax>0 : cmd+=' -a concurrency_limits=n%d.$USER'%args.nmax
-                        cmd+=' python tnpEGM_fitter.py %s --flag %s --sample %s --createHists --njob %d --jobIndex=%d &> log/createHists_%s_%s_%s_job%d'%(args.settings,args.flag,sampleType,args.njob,i,os.path.splitext(os.path.basename(args.settings))[0],args.flag,sampleType,i)
-                        t=threading.Thread(target=os.system, args=(cmd,))
-                        threads.append(t)
-                        t.start()
-                        sys.stdout.write('.')
-                        sys.stdout.flush()
-                        os.system('sleep 0.2')
-                        
-                    print '\nwaiting jobs'
-                    for t in threads:
-                        t.join()
+                    timestamp=datetime.now().strftime("%Y%m%d_%H%M%S")
+                    jobbatchname='createHists_%s_%s_%s'%(os.path.splitext(os.path.basename(args.settings))[0],args.flag,sampleType)
+                    working_dir='log/'+timestamp+'_'+jobbatchname
+                    os.system('mkdir '+working_dir)
+                    with open(working_dir+'/condor.jds','w') as f:
+                        f.write(
+'''
+executable = tnpEGM_fitter.py
+arguments = {0} --flag {1} --sample {2} --createHists --njob {3} --jobIndex $(Process)
+output = {4}/job$(Process).out
+error = {4}/job$(Process).err
+log = {4}/condor.log
+{5}
+jobbatchname = {6}
+getenv = True
+queue {3}
+'''.format(args.settings,args.flag,sampleType,str(args.njob),working_dir,'concurrency_limits = n'+str(args.nmax)+'.'+os.getenv("USER") if args.nmax>0 else '',jobbatchname))
+                    os.system('condor_submit '+working_dir+'/condor.jds')                        
+                    print 'Waiting jobs...'
+                    os.system('condor_wait '+working_dir+'/condor.log')
                     outfiles=[]
                     for i in range(args.njob): outfiles.append('%s_job%d.root'%(os.path.splitext(sample.histFile)[0],i))
                     os.system('hadd -f %s %s'%(sample.histFile,' '.join(outfiles)))
@@ -189,12 +192,6 @@ for s in tnpConf.samplesDef.keys():
     setattr( sample, 'fitType' , fitType )
     setattr( sample, 'fitFile' , fitFile )
 
-#    setattr( sample, 'nominalFit', '%s/%s_%s.nominalFit.root' % ( outputDirectory , sample.name, args.flag ) )
-#    setattr( sample, 'altSigFit' , '%s/%s_%s.altSigFit.root'  % ( outputDirectory , sample.name, args.flag ) )
-#    setattr( sample, 'altBkgFit' , '%s/%s_%s.altBkgFit.root'  % ( outputDirectory , sample.name, args.flag ) )
-
-
-
 
 ### change the sample to fit is mc fit
 if args.mcSig :
@@ -202,42 +199,48 @@ if args.mcSig :
 
 if  args.doFit:    
     sampleToFit.dump()
-    if args.njob>0:
+    if args.njob>0 or args.nmax>0:
         if args.nmax==-1: args.nmax=args.njob
         if args.jobIndex<0:
             if os.path.exists(os.path.splitext(sampleToFit.fitFile)[0]):
                 shutil.rmtree(os.path.splitext(sampleToFit.fitFile)[0])
             os.makedirs(os.path.splitext(sampleToFit.fitFile)[0])
-            print 'submitting', len(tnpBins['bins']), 'jobs, nmax=',args.nmax
-            threads=[]
-            for ib in range(len(tnpBins['bins'])):
-                jobbatchname='doFit_%s_%s'%(os.path.splitext(os.path.basename(args.settings))[0],args.flag)
-                pythoncmd='python tnpEGM_fitter.py %s --flag %s --doFit -n %d --jobIndex=%d'%(args.settings,args.flag,args.njob,ib)
-                if args.mcSig :
-                    jobbatchname+='_mcSig'
-                    pythoncmd+=' --mcSig'
-                if args.altSig:
-                    jobbatchname+='_altSig'
-                    pythoncmd+=' --altSig'
-                elif args.altBkg:
-                    jobbatchname+='_altBkg'
-                    pythoncmd+=' --altBkg'
-                logname=jobbatchname+'_bin%d'%ib
-                cmd='condor_run -a jobbatchname='+jobbatchname
-                if args.nmax>0: cmd+=' -a concurrency_limits=n%d.$USER'%args.nmax
-                if args.fitlog: pythoncmd+=' &> log/'+logname
-                else: pythoncmd+=' &> /dev/null'                
-                cmd+=' \'%s\''%pythoncmd
-                t=threading.Thread(target=os.system, args=(cmd,))
-                threads.append(t)
-                t.start()
-                sys.stdout.flush()
-                sys.stdout.write('.')
-                os.system('sleep 0.5')
-                        
-            print '\nwaiting jobs'
-            for t in threads:
-                t.join()
+            timestamp=datetime.now().strftime("%Y%m%d_%H%M%S")
+            arguments='%s --flag %s --doFit -n %d --jobIndex=$(Process)'%(args.settings,args.flag,args.njob)
+            jobbatchname='doFit_%s_%s'%(os.path.splitext(os.path.basename(args.settings))[0],args.flag)
+            priority=''
+            if args.mcSig :
+                jobbatchname+='_mcSig'
+                arguments+=' --mcSig'
+            if args.altSig:
+                jobbatchname+='_altSig'
+                arguments+=' --altSig'
+                priority='priority = 1'
+            elif args.altBkg:
+                jobbatchname+='_altBkg'
+                arguments+=' --altBkg'
+            working_dir='log/'+timestamp+'_'+jobbatchname
+            os.system('mkdir '+working_dir)
+            with open(working_dir+'/condor.jds','w') as f:
+                f.write(
+'''
+executable = tnpEGM_fitter.py
+arguments = {0}
+output = {1}/job$(Process).out
+error = {1}/job$(Process).err
+log = {1}/condor.log
+{2}
+jobbatchname = {3}
+getenv = True
+{4}
+queue {5}
+'''.format(arguments,working_dir,'concurrency_limits = n'+str(args.nmax)+'.'+os.getenv("USER") if args.nmax>0 else '',jobbatchname,priority,str(len(tnpBins['bins']))))
+            #if args.fitlog: pythoncmd+=' &> log/'+logname
+            #else: pythoncmd+=' &> /dev/null'                
+
+            os.system('condor_submit '+working_dir+'/condor.jds')                        
+            print 'Waiting jobs...'
+            os.system('condor_wait '+working_dir+'/condor.log')
 
             outfiles=[]
             for ib in range(len(tnpBins['bins'])): outfiles.append('%s/bin%d.root'%(os.path.splitext(sampleToFit.fitFile)[0],ib))

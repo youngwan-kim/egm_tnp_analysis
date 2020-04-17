@@ -150,6 +150,7 @@ def makePassFailHistograms( sample, flag, bindef, var ):
     frac_of_nevts = stepsize/20
 
     print("Starting event loop to fill histograms..")
+    print("Run loop from "+str(startevent)+"/"+str(nevts)+" to "+str(startevent+stepsize-1)+"/"+str(nevts))
 
     for index in range(startevent,startevent+stepsize):
         if index >= nevts: break
@@ -176,8 +177,8 @@ def makePassFailHistograms( sample, flag, bindef, var ):
     #####################
 
     for ib in range(len(bindef['bins'])):
-        removeNegativeBins(hPass[ib])
-        removeNegativeBins(hFail[ib])
+        #removeNegativeBins(hPass[ib])
+        #removeNegativeBins(hFail[ib])
 
         hPass[ib].Write(hPass[ib].GetName())
         hFail[ib].Write(hFail[ib].GetName())

@@ -1,0 +1,12 @@
+./RunTnP.sh etc/config/AFBElectronID2016.py MediumID_QPlus
+./RunTnP.sh etc/config/AFBElectronID2016.py MediumID_QMinus
+./RunTnP.sh etc/config/AFBElectronID2016.py TightID_Selective_QPlus
+./RunTnP.sh etc/config/AFBElectronID2016.py TightID_Selective_QMinus
+./RunTnP.sh etc/config/AFBElectronTrigger2016.py Ele23Leg1_MediumID_QPlus
+./RunTnP.sh etc/config/AFBElectronTrigger2016.py Ele23Leg1_MediumID_QMinus
+./RunTnP.sh etc/config/AFBElectronTrigger2016.py Ele12Leg2_MediumID_QPlus
+./RunTnP.sh etc/config/AFBElectronTrigger2016.py Ele12Leg2_MediumID_QMinus
+./RunTnP.sh etc/config/AFBElectronTrigger2016.py Ele27_MediumID_QPlus
+./RunTnP.sh etc/config/AFBElectronTrigger2016.py Ele27_MediumID_QMinus
+./RunTnP.sh etc/config/AFBElectronTrigger2016.py Ele27_TightID_Selective_QPlus
+./RunTnP.sh etc/config/AFBElectronTrigger2016.py Ele27_TightID_Selective_QMinus

@@ -11,7 +11,6 @@ biningDef = [
 #############################################################
 ### cut
 #cutBase   = 'tag_Ele_pt > 30 && abs(tag_sc_eta) < 2.1 && el_q*tag_Ele_q < 0'
-
 # can add addtionnal cuts for some bins (first check bin number using tnpEGM --checkBins)
 additionalCuts={}
 for i in range(36):
@@ -40,4 +39,3 @@ tnpParAltBkgFit = [
     "alphaP[0.,-5.,5.]",
     "alphaF[0.,-5.,5.]",
     ]
-        
