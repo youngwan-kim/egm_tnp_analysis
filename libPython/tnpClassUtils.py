@@ -6,20 +6,20 @@ def mkdir(directory):
         os.makedirs(directory) 
 
 class tnpSample:
-    def __init__(self, paths, eventexp, fitfunctions,mass_nbin,mass_min,mass_max):
+    def __init__(self, paths, eventexp, fitfunction,mass_nbin,mass_min,mass_max):
         self.paths=paths
         self.eventexp=eventexp
-        self.fitfunctions=fitfunctions
+        self.fitfunction=fitfunction
         self.histFile=None
         self.fitFile=None
         self.mass_nbin=mass_nbin
         self.mass_min=mass_min
         self.mass_max=mass_max
-
+ 
     def dump(self):
         print '  paths    : ', self.paths
         print '  eventexp  : ', self.eventexp
-        print '  fitfuctions  : ', self.fitfunctions
+        print '  fitfuction  : ', self.fitfunction
         print '  histFile  : ', self.histFile
         print '  fitFile  : ', self.fitFile
         print '  mass_nbin  : ', self.mass_nbin

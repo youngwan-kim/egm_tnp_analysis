@@ -30,9 +30,9 @@ public:
   void setZLineShapes(TH1 *hZPass, TH1 *hZFail );
   void setWorkspace(std::vector<std::string>);
   void setOutputFile(TFile *fOut ) {_fOut = fOut;}
-  TCanvas* fits(std::string title = "",bool doCheck=false);
+  TCanvas* fits(bool IsMCsample, std::string title = "",bool doCheck=false);
   void useMinos(bool minos = true) {_useMinos = minos;}
-  void textParForCanvas(RooFitResult *resP, RooFitResult *resF, TPad *p);
+  void textParForCanvas(RooFitResult *resP, RooFitResult *resF, TPad *p, bool IsMCsample=false);
   
   void fixSigmaFtoSigmaP(bool fix=true) { _fixSigmaFtoSigmaP= fix;}
 
@@ -41,7 +41,7 @@ public:
 private:
   std::string _histname_base;
   TFile *_fOut;
-  double _nTotP, _nTotF;
+  double _nTotP, _nTotF, _eTotP, _eTotF;
   bool _useMinos;
   bool _fixSigmaFtoSigmaP;
   double _xFitMin,_xFitMax;
@@ -61,9 +61,9 @@ tnpFitter::tnpFitter(TString filein, std::string histname,double xmin, double xm
   RooMsgService::instance().setSilentMode(true);
   _histname_base = histname;  
 
-  _nTotP = hPass->Integral();
-  _nTotF = hFail->Integral();
-  cout<<_nTotP<<" "<<_nTotF<<endl;
+  _nTotP = hPass->IntegralAndError(hPass->GetXaxis()->GetFirst(),hPass->GetXaxis()->GetLast(),_eTotP,"");
+  _nTotF = hFail->IntegralAndError(hPass->GetXaxis()->GetFirst(),hPass->GetXaxis()->GetLast(),_eTotF,"");
+  cout<<_nTotP<<"+-"<<_eTotP<<" "<<_nTotF<<"+-"<<_eTotF<<endl;
   /// MC histos are done between 50-130 to do the convolution properly
   /// but when doing MC fit in 60-120, need to zero bins outside the range
   for( int ib = 0; ib <= hPass->GetXaxis()->GetNbins()+1; ib++ )
@@ -73,10 +73,10 @@ tnpFitter::tnpFitter(TString filein, std::string histname,double xmin, double xm
     }
   
   _work = new RooWorkspace("w") ;
-  _work->factory(Form("x[%f,%f]",xmin,xmax));
-  
-  RooDataHist rooPass("hPass","hPass",*_work->var("x"),hPass);
-  RooDataHist rooFail("hFail","hFail",*_work->var("x"),hFail);
+  _work->factory(Form("mass[%f,%f]",xmin,xmax));
+
+  RooDataHist rooPass("hPass","hPass",*_work->var("mass"),hPass);
+  RooDataHist rooFail("hFail","hFail",*_work->var("mass"),hFail);
   _work->import(rooPass) ;
   _work->import(rooFail) ;
   _xFitMin = xmin;
@@ -85,38 +85,60 @@ tnpFitter::tnpFitter(TString filein, std::string histname,double xmin, double xm
 
 
 void tnpFitter::setZLineShapes(TH1 *hZPass, TH1 *hZFail ) {
-  RooDataHist rooPass("hGenZPass","hGenZPass",*_work->var("x"),hZPass);
-  RooDataHist rooFail("hGenZFail","hGenZFail",*_work->var("x"),hZFail);
+  RooDataHist rooPass("hGenZPass","hGenZPass",*_work->var("mass"),hZPass);
+  RooDataHist rooFail("hGenZFail","hGenZFail",*_work->var("mass"),hZFail);
   _work->import(rooPass) ;
   _work->import(rooFail) ;  
 }
 
 void tnpFitter::setWorkspace(std::vector<std::string> workspace) {
   for( unsigned icom = 0 ; icom < workspace.size(); ++icom ) {
-    cout<<workspace[icom]<<endl;
+    cout<<workspace[icom].c_str()<<endl;
     _work->factory(workspace[icom].c_str());
   }
-
-  if(!_work->var("nSigP")) _work->factory(TString::Format("nSigP[%f,10,%f]",_nTotP*0.9,_nTotP*1.5));
-  if(!_work->var("nBkgP")) _work->factory(TString::Format("nBkgP[%f,10,%f]",_nTotP*0.1,_nTotP*1.5));
-  if(!_work->var("nSigF")) _work->factory(TString::Format("nSigF[%f,10,%f]",_nTotF*0.9,_nTotF*1.5));
-  if(!_work->var("nBkgF")) _work->factory(TString::Format("nBkgF[%f,10,%f]",_nTotF*0.1,_nTotF*1.5));
+  _work->factory("HistPdf::sigPhysPass(mass,hGenZPass,2)"); // '2' means that HistPdf uses interpolation(2nd order) to smooth the shape when they call hGenZPass
+  _work->factory("HistPdf::sigPhysFail(mass,hGenZFail,2)"); // Default was '0'. But '2' seems better than 0,1,2,3,4,5 - smaller systematic uncertainty, better fit quality
+  _work->factory("FCONV::signalPass(mass, sigPhysPass , sigResPass)");
+  _work->factory("FCONV::signalFail(mass, sigPhysFail , sigResFail)");       // Default
+  _work->factory(TString::Format("nSigP[%f,0.1,%f]",_nTotP*0.9,_nTotP*1.55));// 0.9, 1.55
+  _work->factory(TString::Format("nBkgP[%f,0.1,%f]",_nTotP*0.1,_nTotP*1.5)); // 0.1, 1.5
+  _work->factory(TString::Format("nSigF[%f,0.1,%f]",_nTotF*0.9,_nTotF*2.0)); // 0.9, 2.0
+  _work->factory(TString::Format("nBkgF[%f,0.1,%f]",_nTotF*0.1,_nTotF*1.5)); // 0.1, 1.5
   _work->factory("SUM::pdfPass(nSigP*signalPass,nBkgP*backgroundPass)");
   _work->factory("SUM::pdfFail(nSigF*signalFail,nBkgF*backgroundFail)");
-  _work->Print();			         
+
+  _work->Print("t");
 }
 
-TCanvas* tnpFitter::fits(string title,bool doCheck) {
+TCanvas* tnpFitter::fits(bool IsMCsample, string title, bool doCheck) {
   cout << " title : " << title << endl;
 
-  
   RooAbsPdf *pdfPass = _work->pdf("pdfPass");
   RooAbsPdf *pdfFail = _work->pdf("pdfFail");
 
+  if( IsMCsample ) {
+    _work->var("nBkgP")->setVal(0); _work->var("nBkgP")->setConstant();
+    _work->var("nBkgF")->setVal(0); _work->var("nBkgF")->setConstant();
+    // Make Background into 0 (CMS can be exactly zero, but Expo seems not...)
+    if( _work->var("peakCMSP") ) {_work->var("peakCMSP")->setVal(-90); _work->var("peakCMSP")->setConstant(); }
+    if( _work->var("peakCMSF") ) {_work->var("peakCMSF")->setVal(-90); _work->var("peakCMSF")->setConstant(); }
+    if( _work->var("aCMSP") )    {_work->var("aCMSP")->setConstant();    }
+    if( _work->var("aCMSF") )    {_work->var("aCMSF")->setConstant();    }
+    if( _work->var("bCMSP") )    {_work->var("bCMSP")->setConstant();    }
+    if( _work->var("bCMSF") )    {_work->var("bCMSF")->setConstant();    }
+    if( _work->var("cCMSP") )    {_work->var("cCMSP")->setVal(1);      _work->var("cCMSP")->setConstant();    }
+    if( _work->var("cCMSF") )    {_work->var("cCMSF")->setVal(1);      _work->var("cCMSF")->setConstant();    }
+    if( _work->var("aExpoP") )   {_work->var("aExpoP")->setVal(0);     _work->var("aExpoP")->setConstant();   }
+    if( _work->var("aExpoF") )   {_work->var("aExpoF")->setVal(0);     _work->var("aExpoF")->setConstant();   }
+    // MC fitting should be like an Cut&Count (Resolution function should be delta funtion-like.)
+    if( _work->var("sigmaGaussP") )  _work->var("sigmaGaussP")->setRange(0, 0.1);
+    if( _work->var("sigmaGaussF") )  _work->var("sigmaGaussF")->setRange(0, 0.1);
+  }
+
   /// FC: seems to be better to change the actual range than using a fitRange in the fit itself (???)
   /// FC: I don't know why but the integral is done over the full range in the fit not on the reduced range
-  _work->var("x")->setRange(_xFitMin,_xFitMax);
-  _work->var("x")->setRange("fitMassRange",_xFitMin,_xFitMax);
+  _work->var("mass")->setRange(_xFitMin,_xFitMax);
+  _work->var("mass")->setRange("fitMassRange",_xFitMin,_xFitMax);
   RooFitResult* resPass = pdfPass->fitTo(*_work->data("hPass"),Minos(_useMinos),SumW2Error(kTRUE),Save(),Range("fitMassRange"),PrintLevel(-1));
   //RooFitResult* resPass = pdfPass->fitTo(*_work->data("hPass"),Minos(_useMinos),SumW2Error(kTRUE),Save());
   if( _fixSigmaFtoSigmaP ) {
@@ -129,11 +151,11 @@ TCanvas* tnpFitter::fits(string title,bool doCheck) {
   RooFitResult* resFail = pdfFail->fitTo(*_work->data("hFail"),Minos(_useMinos),SumW2Error(kTRUE),Save(),Range("fitMassRange"));
   //RooFitResult* resFail = pdfFail->fitTo(*_work->data("hFail"),Minos(_useMinos),SumW2Error(kTRUE),Save());
 
-  RooPlot *pPass = _work->var("x")->frame(_xFitMin,_xFitMax);
-  RooPlot *pFail = _work->var("x")->frame(_xFitMin,_xFitMax);
+  RooPlot *pPass = _work->var("mass")->frame(_xFitMin,_xFitMax);
+  RooPlot *pFail = _work->var("mass")->frame(_xFitMin,_xFitMax);
   pPass->SetTitle("passing probe");
   pFail->SetTitle("failing probe");
-  
+
   _work->data("hPass") ->plotOn( pPass );
   _work->pdf("pdfPass")->plotOn( pPass, LineColor(kRed) );
   _work->pdf("pdfPass")->plotOn( pPass, Components("backgroundPass"),LineColor(kBlue),LineStyle(kDashed));
@@ -147,15 +169,13 @@ TCanvas* tnpFitter::fits(string title,bool doCheck) {
   TCanvas c("c","c",1100,450);
   c.Divide(3,1);
   TPad *padText = (TPad*)c.GetPad(1);
-  textParForCanvas( resPass,resFail, padText );
+  textParForCanvas( resPass, resFail, padText, IsMCsample);
   c.cd(2); pPass->Draw();
-  double chiPassVal=pPass->chiSquare("pdfPass_Norm[x]_Range[fit_nll_pdfPass_hPass]_NormRange[fit_nll_pdfPass_hPass]","h_hPass");
-  TText chiPass(0.1,0.02,Form("chi/n=%f",chiPassVal)); chiPass.SetName("chiPass");chiPass.SetNDC();chiPass.Draw();
-  TText scorePass(0.6,0.02,Form("score=%f",chiPassVal/(1+_work->var("nSigP")->getVal()*0.001/nBins)));scorePass.SetName("scorePass");scorePass.SetNDC();scorePass.Draw();
+  double chiPassVal=pPass->chiSquare("pdfPass_Norm[mass]_Range[fit_nll_pdfPass_hPass]_NormRange[fit_nll_pdfPass_hPass]","h_hPass");
+  TText chiPass(0.1,0.02,Form("chi^2/n=%f",chiPassVal)); chiPass.SetName("chiPass");chiPass.SetNDC();chiPass.Draw();
   c.cd(3); pFail->Draw();
-  double chiFailVal=pFail->chiSquare("pdfFail_Norm[x]_Range[fit_nll_pdfFail_hFail]_NormRange[fit_nll_pdfFail_hFail]","h_hFail");
-  TText chiFail(0.1,0.02,Form("chi/n=%f",chiFailVal));chiFail.SetName("chiFail");chiFail.SetNDC();chiFail.Draw();
-  TText scoreFail(0.6,0.02,Form("score=%f",chiFailVal/(1+_work->var("nSigF")->getVal()*0.001/nBins+_work->var("nBkgF")->getVal()*0.000005)));scoreFail.SetName("scoreFail");scoreFail.SetNDC();scoreFail.Draw();
+  double chiFailVal=pFail->chiSquare("pdfFail_Norm[mass]_Range[fit_nll_pdfFail_hFail]_NormRange[fit_nll_pdfFail_hFail]","h_hFail");
+  TText chiFail(0.1,0.02,Form("chi^2/n=%f",chiFailVal));chiFail.SetName("chiFail");chiFail.SetNDC();chiFail.Draw();
   _fOut->cd();
   c.Write(TString::Format("%s_Canv",_histname_base.c_str()),TObject::kWriteDelete);
   resPass->Write(TString::Format("%s_resP",_histname_base.c_str()),TObject::kWriteDelete);
@@ -165,12 +185,8 @@ TCanvas* tnpFitter::fits(string title,bool doCheck) {
   else return NULL;
 }
 
-
-
-
-
 /////// Stupid parameter dumper /////////
-void tnpFitter::textParForCanvas(RooFitResult *resP, RooFitResult *resF,TPad *p) {
+void tnpFitter::textParForCanvas(RooFitResult *resP, RooFitResult *resF, TPad *p, bool IsMCsample) {
 
   double eff = -1;
   double e_eff = 0;
@@ -186,7 +202,7 @@ void tnpFitter::textParForCanvas(RooFitResult *resP, RooFitResult *resF,TPad *p)
   eff = nP / (nP+nF);
   e_eff = 1./(nTot*nTot) * sqrt( nP*nP* e_nF*e_nF + nF*nF * e_nP*e_nP );
 
-  TPaveText *text1 = new TPaveText(0,0.8,1,1);
+  TPaveText *text1 = new TPaveText(0.02,0.80, 0.98,0.98); //original (0,0.8, 1,1) -> (0.05,0.75, 0.95,0.95)
   text1->SetFillColor(0);
   text1->SetBorderSize(0);
   text1->SetTextAlign(12);
@@ -196,12 +212,11 @@ void tnpFitter::textParForCanvas(RooFitResult *resP, RooFitResult *resF,TPad *p)
   text1->SetName("reportTPave");
   //  text->SetTextSize(0.06);
 
-//  text->AddText("* Passing parameters");
-  TPaveText *text = new TPaveText(0,0,1,0.8);
+  TPaveText *text = new TPaveText(0.02,0.02, 0.98,0.78); //original (0,0, 1,0.8) -> (0.05,0.05, 0.95,0.7)
   text->SetFillColor(0);
   text->SetBorderSize(0);
   text->SetTextAlign(12);
-  text->AddText("    --- parmeters " );
+  text->AddText("    ---Floating Parameters--- " );
   RooArgList listParFinalP = resP->floatParsFinal();
   for( int ip = 0; ip < listParFinalP.getSize(); ip++ ) {
     TString vName = listParFinalP[ip].GetName();
@@ -211,7 +226,6 @@ void tnpFitter::textParForCanvas(RooFitResult *resP, RooFitResult *resF,TPad *p)
 				  _work->var(vName)->getError() ) );
   }
 
-//  text->AddText("* Failing parameters");
   RooArgList listParFinalF = resF->floatParsFinal();
   for( int ip = 0; ip < listParFinalF.getSize(); ip++ ) {
     TString vName = listParFinalF[ip].GetName();
@@ -220,6 +234,19 @@ void tnpFitter::textParForCanvas(RooFitResult *resP, RooFitResult *resF,TPad *p)
 				  _work->var(vName)->getVal(),
 				  _work->var(vName)->getError() ) );
   }
+
+  // CutandCount Efficiency for MC
+  text->AddText("    ---Cut & Count --- " );
+
+  double CnCeff = -1;
+  double CnCe_eff = 0;
+
+  double _nTot = _nTotP+_nTotF;
+  CnCeff = _nTotP / (_nTotP+_nTotF);
+  CnCe_eff = 1./(_nTot*_nTot) * sqrt(_nTotP*_nTotP*_eTotF*_eTotF + _nTotF*_nTotF*_eTotP*_eTotP );
+  text->AddText(TString::Format("   - nPass = %1.3f #pm %1.3f",_nTotP,_eTotP)); 
+  text->AddText(TString::Format("   - nFail = %1.3f #pm %1.3f",_nTotF,_eTotF)); 
+  text->AddText(TString::Format("   - Cut&Count eff = %1.4f #pm %1.4f",CnCeff,CnCe_eff)); // These can double-check that MC efficiency is exactly the same with Cut&Count efficiency
 
   p->cd();
   text1->Draw();
