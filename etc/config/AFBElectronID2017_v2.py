@@ -6,8 +6,10 @@ samplesDef = {
     'mcAlt'  : tnpSamples.AFB['mg2017_official'].clone(),
     'tagSel' : tnpSamples.AFB['amc2017_official'].clone(),
 }
+samplesDef['mcNom'].set_cut(tight_mcTrue)
+samplesDef['mcAlt'].set_cut(tight_mcTrue)
 samplesDef['tagSel'].rename('mcAltSel_'+samplesDef['tagSel'].name)
-samplesDef['tagSel'].set_cut('tag_Ele_pt > 37')
+samplesDef['tagSel'].set_cut('tag_Ele_pt > 37 && '+tight_mcTrue)
 
 baseOutDir = 'results/AFBElectronID2017_v2/'
 tnpTreeDir = 'tnpEleIDs'

@@ -162,7 +162,7 @@ void tnpFitter::fits(bool mcTruth,string title) {
   }
 
   _work->var("sigmaF")->setVal(_work->var("sigmaP")->getVal());
-  _work->var("sigmaF")->setRange(0.8* _work->var("sigmaP")->getVal(), 3.0* _work->var("sigmaP")->getVal());
+  _work->var("sigmaF")->setRange(0.8* _work->var("sigmaP")->getVal(), 1.6* _work->var("sigmaP")->getVal()>4. ? 4. : 1.6* _work->var("sigmaP")->getVal());
   RooFitResult* resFail = pdfFail->fitTo(*_work->data("hFail"),Minos(_useMinos),SumW2Error(kTRUE),Save(),Range("fitMassRange"));
   //RooFitResult* resFail = pdfFail->fitTo(*_work->data("hFail"),Minos(_useMinos),SumW2Error(kTRUE),Save());
 

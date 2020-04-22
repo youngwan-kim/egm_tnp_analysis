@@ -1,15 +1,15 @@
 from AFBElectronCommon import *
 import etc.inputs.tnpSampleDef as tnpSamples
 samplesDef = {
-    'data'   : tnpSamples.AFB['data2016_official'].clone(),
-    'mcNom'  : tnpSamples.AFB['mg2016_official'].clone(),
-    'mcAlt'  : tnpSamples.AFB['amc2016_official'].clone(),
-    'tagSel' : tnpSamples.AFB['mg2016_official'].clone(),
+    'data'   : tnpSamples.AFB['data2016_official_L1matched'].clone(),
+    'mcNom'  : tnpSamples.AFB['mg2016_official_L1matched'].clone(),
+    'mcAlt'  : tnpSamples.AFB['amc2016_official_L1matched'].clone(),
+    'tagSel' : tnpSamples.AFB['mg2016_official_L1matched'].clone(),
 }
 samplesDef['tagSel'].rename('mcAltSel_'+samplesDef['tagSel'].name)
 samplesDef['tagSel'].set_cut('tag_Ele_pt > 35')
 
-baseOutDir = 'results/AFBElectronTrigger2016_v1.1/'
+baseOutDir = 'results/AFBElectronTrigger2016_v1_3/'
 tnpTreeDir = 'tnpEleTrig'
 cutBase   = 'tag_Ele_pt > 30 && abs(tag_sc_eta) < 2.1 && el_q*tag_Ele_q < 0'
 additionalCutBase = {
