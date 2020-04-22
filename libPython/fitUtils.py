@@ -82,7 +82,7 @@ def createWorkspaceForAltSig(fitfile, tnpBin, fitparameters, IsMC ):
                 for ir in listToRM :
                     fitparameters.remove(ir)
                 #fitparameters.append( '%s[%2.3f]' % (pName,fitPar[ipar].getVal()) )
-                fitparameters.append('%s[%2.3f, %2.3f,%2.3f]'%(pName, fitPar[ipar].getVal(), fitPar[ipar].getVal()-freedomOfParam*fitPar[ipar].getError(), fitPar[ipar].getVal()+freedomOfParam*fitPar[ipar].getError()))
+                fitparameters.append('%s[%2.3f, %2.3f,%2.3f]'%(pName, fitPar[ipar].getVal(), max(0.5,fitPar[ipar].getVal()-freedomOfParam*fitPar[ipar].getError()), fitPar[ipar].getVal()+freedomOfParam*fitPar[ipar].getError()))
   
     fitPar = fitresP.floatParsFinal()
     for ipar in range(len(fitPar)):
@@ -95,7 +95,7 @@ def createWorkspaceForAltSig(fitfile, tnpBin, fitparameters, IsMC ):
                 for ir in listToRM :
                     fitparameters.remove(ir)
                 #fitparameters.append( '%s[%2.3f]' % (pName,fitPar[ipar].getVal()) )
-                fitparameters.append('%s[%2.3f, %2.3f,%2.3f]'%(pName, fitPar[ipar].getVal(), fitPar[ipar].getVal()-freedomOfParam*fitPar[ipar].getError(), fitPar[ipar].getVal()+freedomOfParam*fitPar[ipar].getError()))
+                fitparameters.append('%s[%2.3f, %2.3f,%2.3f]'%(pName, fitPar[ipar].getVal(), max(0.5,fitPar[ipar].getVal()-freedomOfParam*fitPar[ipar].getError()), fitPar[ipar].getVal()+freedomOfParam*fitPar[ipar].getError()))
 
     filemc.Close()
 

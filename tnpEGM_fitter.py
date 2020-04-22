@@ -1,4 +1,3 @@
-
 ### python specific import
 import argparse
 import os
@@ -9,6 +8,7 @@ import subprocess
 import time
 import ROOT as rt
 import math
+from zipfile import ZipFile
 
 parser = argparse.ArgumentParser(description='tnp EGM fitter')
 parser.add_argument('--checkBins'  , action='store_true'  , help = 'check  bining definition')
@@ -126,6 +126,8 @@ if args.createHists:
             print 'creating histogram for flag '+flag
             histfile='%s/%s/%s_hist.root'%(tnpConf.baseOutDir,flag,flag)
             var = { 'name' : 'mass', 'nbins' : sample.mass_nbin, 'min' : sample.mass_min, 'max': sample.mass_max }
+            if 'mc_altsig2' in flag:
+                var = { 'name' : 'mcMass', 'nbins' : sample.mass_nbin, 'min' : sample.mass_min, 'max': sample.mass_max }
             tnpBins = pickle.load( open( '%s/%s/bining.pkl'%(tnpConf.baseOutDir,flag),'rb') )
             tnpHist.makePassFailHistograms( sample.paths, 'tpTree/fitter_tree', histfile+ ('.condortmp'+str(args.ijob) if args.subjob else ''),tnpConf.passcondition, tnpBins, var,None,args.njob,args.ijob)
             
@@ -174,10 +176,13 @@ if  args.doFit:
                 histfile='%s/%s/%s_hist.root'%(tnpConf.baseOutDir,flag,flag)
                 fitfile='%s/%s/%s_fitresult.root'%(tnpConf.baseOutDir,flag,flag)
                 tnpBins = pickle.load( open( '%s/%s/bining.pkl'%(tnpConf.baseOutDir,flag),'rb') )
+                tnpRoot.histFitter_Norminal(histfile,fitfile,tnpBins['bins'][ib],sample.mass_min,sample.mass_max,sample.fitfunction,args.doDraw)
+                '''
                 if 'altsig' not in flag:
                     tnpRoot.histFitter_Norminal(histfile,fitfile,tnpBins['bins'][ib],sample.mass_min,sample.mass_max,sample.fitfunction,args.doDraw)
                 else:
                     tnpRoot.histFitter_AltSig(histfile,fitfile,tnpBins['bins'][ib],sample.mass_min,sample.mass_max,sample.fitfunction,args.doDraw)
+                '''
 
 ####################################################################
 ##### dumping plots
@@ -197,12 +202,19 @@ if  args.doPlot:
             if not os.path.exists( plottingDir ):
                 os.makedirs( plottingDir )
             shutil.copy('etc/inputs/index.php.listPlots','%s/index.php' % plottingDir)
-            for ib in range(len(tnpBins['bins'])) if args.binNumber<0 else args.binNumber:
-                tnpRoot.histPlotter( fitfile, tnpBins['bins'][ib], plottingDir )
 
+            fitzip = '%s/%s/fitCanvas.zip'%(tnpConf.baseOutDir,flag)
+            with ZipFile(fitzip, 'w') as pngzip:
+                for ib in range(len(tnpBins['bins'])) if args.binNumber<0 else args.binNumber:
+                    tnpRoot.histPlotter( fitfile, tnpBins['bins'][ib], plottingDir )
+                    pngzip.write('%s/%s.png' %(plottingDir,tnpBins['bins'][ib]['name']))
+
+                    os.remove('%s/%s.png' %(plottingDir,tnpBins['bins'][ib]['name'])) # To save fitcanvas only in zip file. (They are too many to view on web)
+                pngzip.write('%s/index.php' % plottingDir)
+                os.remove('%s/index.php' % plottingDir)
+                os.rmdir('%s/' %plottingDir)
             print ' ===> Plots saved in <======='
-            print plottingDir
-
+            print fitzip
 
 ####################################################################
 ##### dumping egamma txt file 
@@ -223,7 +235,7 @@ if args.sumUp:
         erroravg_total=[]
         for ib in range(len(tnpBins['bins'])):
             if ib == 0 :
-                fOut.write('ibin\tCentral\tStaterr\tSysterr\tTotalerr  [MassRange]\t[MassBin]\t[TagIso]\t[AltBkd][AltSig]\n')
+                fOut.write('ibin\tCentral\tStaterr\tSysterr\tTotalerr  [MassRange]\t[MassBin]\t[TagIso]\t[AltSig]   Syst/Stat\n')
             line=[]
             line.append(str(ib))
             centralval,centralerr = tnpRoot.GetEffi( '%s/%s/%s_fitresult.root'%(tnpConf.baseOutDir,centralflag,centralflag),tnpBins['bins'][ib]['name'])
@@ -242,13 +254,16 @@ if args.sumUp:
             totalerr+=(centralerr*centralerr+totalsys)
             line.insert(3,'%.4f'%math.sqrt(totalsys))
             line.insert(4,'%.4f'%math.sqrt(totalerr))
+            line.append('    ')
+            if centralerr != 0:
+                line.append('%.2f'%(math.sqrt(totalsys)/centralerr)) ## Ratio of syst/stat, if this value is significantly large, maybe you need to check.
             erroravg_sys.append(math.sqrt(totalsys))
             erroravg_total.append(math.sqrt(totalerr))
             fOut.write("\t".join(line)+"\n")
 
             if ib == len(tnpBins['bins'])-1:   #### Print average of errors
                 line_last=['Average', 'error:']
-                line_last+=['%.4f '%(sum(erroravg_stat)/len(erroravg_stat)),'%.4f '%(sum(erroravg_sys)/len(erroravg_sys)),'%.4f '%(sum(erroravg_total)/len(erroravg_total))]
+                line_last+=['%.6f (stat)'%(sum(erroravg_stat)/len(erroravg_stat)),'%.6f (syst)'%(sum(erroravg_sys)/len(erroravg_sys)),'%.6f (total)'%(sum(erroravg_total)/len(erroravg_total))]
                 fOut.write("\t".join(line_last)+'\n')
         fOut.close()
         print 'Eff is saved in file : ',  effFileName
@@ -316,6 +331,29 @@ if args.sumUp:
         sfhist.Write()
     fOut_syst.Close()
     print '%s/result_syst.root'%(tnpConf.baseOutDir) + ' is saved'
+
+##### Won added. To draw rootfiles per each systematics. -> Later, these will used in systematic study.
+    for flag,sample in tnpConf.flags.items():
+        effReport = open('%s/%s/report.txt'%(tnpConf.baseOutDir,flag), 'w')
+        tnpBins = pickle.load( open( '%s/%s/bining.pkl'%(tnpConf.baseOutDir,centralflag),'rb') )
+        effReport.write('ibin\t'+'Eff\tErr\n')
+        for ib in range(len(tnpBins['bins'])):
+            thisval,thiserr = tnpRoot.GetEffi('%s/%s/%s_fitresult.root'%(tnpConf.baseOutDir,flag,flag),tnpBins['bins'][ib]['name'])
+            effReport.write('%d\t%.4f\t%.4f\t\n'%(ib,thisval,thiserr))
+        effReport.close()
+
+    for flag,sample in tnpConf.flags.items():
+        fOut_stat=rt.TFile('%s/%s/result_stat.root'%(tnpConf.baseOutDir,flag),'recreate')
+        effReport ='%s/%s/report.txt' % (tnpConf.baseOutDir,flag)
+        tnpBins = pickle.load( open( '%s/%s/bining.pkl'%(tnpConf.baseOutDir,flag),'rb') )
+        effihist=tnpRoot.GetEffiHist(effReport,tnpBins,"stat") ## Only Staterr
+        effihist.Write()
+        for ib in range(effihist.GetXaxis().GetNbins()):
+            effihist.ProjectionY('%s_eta%.2fto%.2f'%(flag,effihist.GetXaxis().GetBinLowEdge(ib+1),effihist.GetXaxis().GetBinLowEdge(ib+2)),ib+1,ib+1).Write()
+        for ib in range(effihist.GetYaxis().GetNbins()):
+            effihist.ProjectionX('%s_pt%dto%d'%(flag,effihist.GetYaxis().GetBinLowEdge(ib+1),effihist.GetYaxis().GetBinLowEdge(ib+2)),ib+1,ib+1).Write()
+        fOut_stat.Close()
+        print '%s/%s/result_stat.root'%(tnpConf.baseOutDir,flag) + ' is saved'
 
 #    import libPython.EGammaID_scaleFactors as egm_sf
 #    egm_sf.doEGM_SFs(effFileName,sampleToFit.lumi)

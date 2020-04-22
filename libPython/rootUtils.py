@@ -58,17 +58,14 @@ def GetEffiHist(filename,bindef,option="total"):
         if not words[0].isdigit(): continue
         ib=int(words[0])
         
-        if option is not "stat_per_syst":
-            effihist.SetBinContent(effihist.FindBin(bindef['bins'][ib]['vars']['eta']['min'],bindef['bins'][ib]['vars']['pt']['min']),float(words[1]))
-            if option is "stat":
-                effihist.SetBinError(effihist.FindBin(bindef['bins'][ib]['vars']['eta']['min'],bindef['bins'][ib]['vars']['pt']['min']),math.sqrt(float(words[2])*float(words[2])))
-            elif option is "syst":
-                effihist.SetBinError(effihist.FindBin(bindef['bins'][ib]['vars']['eta']['min'],bindef['bins'][ib]['vars']['pt']['min']),math.sqrt(float(words[3])*float(words[3])))
-            else:
-                effihist.SetBinError(effihist.FindBin(bindef['bins'][ib]['vars']['eta']['min'],bindef['bins'][ib]['vars']['pt']['min']),math.sqrt(float(words[2])*float(words[2])+float(words[3])*float(words[3])))
+        effihist.SetBinContent(effihist.FindBin(bindef['bins'][ib]['vars']['eta']['min'],bindef['bins'][ib]['vars']['pt']['min']),float(words[1]))
+        if option is "stat":
+            effihist.SetBinError(effihist.FindBin(bindef['bins'][ib]['vars']['eta']['min'],bindef['bins'][ib]['vars']['pt']['min']),math.sqrt(float(words[2])*float(words[2])))
+        elif option is "syst":
+            effihist.SetBinError(effihist.FindBin(bindef['bins'][ib]['vars']['eta']['min'],bindef['bins'][ib]['vars']['pt']['min']),math.sqrt(float(words[3])*float(words[3])))
         else:
-            effihist.SetBinContent(effihist.FindBin(bindef['bins'][ib]['vars']['eta']['min'],bindef['bins'][ib]['vars']['pt']['min']),float(words[-2]))
-            effihist.SetBinError(effihist.FindBin(bindef['bins'][ib]['vars']['eta']['min'],bindef['bins'][ib]['vars']['pt']['min']),math.sqrt(float(words[-1])*float(words[-1])))
+            effihist.SetBinError(effihist.FindBin(bindef['bins'][ib]['vars']['eta']['min'],bindef['bins'][ib]['vars']['pt']['min']),math.sqrt(float(words[2])*float(words[2])+float(words[3])*float(words[3])))
+
     effihist.SetOption('colz text')
     return effihist
 
