@@ -69,7 +69,7 @@ if args.fit == 'stdin':
 ### tnp library
 import libPython.binUtils  as tnpBiner
 import libPython.rootUtils as tnpRoot
-
+import libPython.fitUtils as tnpFitter
 
 if not args.flag in tnpConf.flags.keys() and not args.flag is None:
     print '[tnpEGM_fitter] flag %s not found in flags definitions' % args.flag
@@ -176,11 +176,11 @@ if  args.doFit:
                 histfile='%s/%s/%s_hist.root'%(tnpConf.baseOutDir,flag,flag)
                 fitfile='%s/%s/%s_fitresult.root'%(tnpConf.baseOutDir,flag,flag)
                 tnpBins = pickle.load( open( '%s/%s/bining.pkl'%(tnpConf.baseOutDir,flag),'rb') )
-                tnpRoot.histFitter_Norminal(histfile,fitfile,tnpBins['bins'][ib],sample.mass_min,sample.mass_max,sample.fitfunction,args.doDraw)
+                tnpFitter.histFitter_Norminal(histfile,fitfile,tnpBins['bins'][ib],sample.mass_min,sample.mass_max,sample.fitfunction,args.doDraw)
                 '''
                 if 'altsig' not in flag:
                     tnpRoot.histFitter_Norminal(histfile,fitfile,tnpBins['bins'][ib],sample.mass_min,sample.mass_max,sample.fitfunction,args.doDraw)
-                else:
+               else:
                     tnpRoot.histFitter_AltSig(histfile,fitfile,tnpBins['bins'][ib],sample.mass_min,sample.mass_max,sample.fitfunction,args.doDraw)
                 '''
 
@@ -204,15 +204,15 @@ if  args.doPlot:
             shutil.copy('etc/inputs/index.php.listPlots','%s/index.php' % plottingDir)
 
             fitzip = '%s/%s/fitCanvas.zip'%(tnpConf.baseOutDir,flag)
-            with ZipFile(fitzip, 'w') as pngzip:
-                for ib in range(len(tnpBins['bins'])) if args.binNumber<0 else args.binNumber:
-                    tnpRoot.histPlotter( fitfile, tnpBins['bins'][ib], plottingDir )
-                    pngzip.write('%s/%s.png' %(plottingDir,tnpBins['bins'][ib]['name']))
+#            with ZipFile(fitzip, 'w') as pngzip:
+            for ib in range(len(tnpBins['bins'])) if args.binNumber<0 else args.binNumber:
+                tnpRoot.histPlotter( fitfile, tnpBins['bins'][ib], plottingDir )
+#                    pngzip.write('%s.png' %(tnpBins['bins'][ib]['name']))
 
-                    os.remove('%s/%s.png' %(plottingDir,tnpBins['bins'][ib]['name'])) # To save fitcanvas only in zip file. (They are too many to view on web)
-                pngzip.write('%s/index.php' % plottingDir)
-                os.remove('%s/index.php' % plottingDir)
-                os.rmdir('%s/' %plottingDir)
+#                    os.remove('%s/%s.png' %(plottingDir,tnpBins['bins'][ib]['name'])) # To save fitcanvas only in zip file. (They are too many to view on web)
+#                pngzip.write('%s/index.php' % plottingDir)
+#                os.remove('%s/index.php' % plottingDir)
+#                os.rmdir('%s/' %plottingDir)
             print ' ===> Plots saved in <======='
             print fitzip
 
