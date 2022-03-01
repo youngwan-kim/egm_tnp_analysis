@@ -226,7 +226,6 @@ class efficiencyList:
     def ptEtaScaleFactor_2DHisto(self, onlyError, relError = False):
 #        self.symmetrizeSystVsEta()
         self.combineSyst()
-
         ### first define bining
         xbins = []
         ybins = []
@@ -241,13 +240,11 @@ class efficiencyList:
                     xbins.append(etaBin[0])                
                 if not etaBin[1] in xbins:
                     xbins.append(etaBin[1])
-
         xbins.sort()
         ybins.sort()
         ## transform to numpy array for ROOT
         xbinsTab = np.array(xbins)
         ybinsTab = np.array(ybins)
-
         htitle = 'e/#gamma scale factors'
         hname  = 'h2_scaleFactorsEGamma' 
         if onlyError >= 0:
@@ -255,12 +252,11 @@ class efficiencyList:
             hname  = 'h2_uncertaintiesEGamma'             
 
         h2 = rt.TH2F(hname,htitle,xbinsTab.size-1,xbinsTab,ybinsTab.size-1,ybinsTab)
-
         ## init histogram efficiencies and errors to 100%
         for ix in range(1,h2.GetXaxis().GetNbins()+1):
             for iy in range(1,h2.GetYaxis().GetNbins()+1):
-                h2.SetBinContent(ix,iy, 1)
-                h2.SetBinError  (ix,iy, 1)
+                h2.SetBinContent(ix,iy, 0)
+                h2.SetBinError  (ix,iy, 0)
         
         for ix in range(1,h2.GetXaxis().GetNbins()+1):
             for iy in range(1,h2.GetYaxis().GetNbins()+1):
@@ -271,7 +267,6 @@ class efficiencyList:
                     for etaBin in self.effList[ptBin].keys():
                         if h2.GetXaxis().GetBinLowEdge(ix) < etaBin[0] or h2.GetXaxis().GetBinUpEdge(ix) > etaBin[1]:
                             continue
-
                         ## average MC efficiency
                         etaBinPlus  = etaBin
                         etaBinMinus = (-etaBin[1],-etaBin[0])
@@ -287,6 +282,9 @@ class efficiencyList:
                             print " ---- efficiencyList: I did not find -eta bin!!!"
                         else:                        
                             averageMC   = (effPlus.effMC   + effMinus.effMC  )/2.
+
+                        if averageMC==0 or self.effList[ptBin][etaBin].effMC==0 : continue
+                        
                         ### so this is h2D bin is inside the bining used by e/gamma POG
                         h2.SetBinContent(ix,iy, self.effList[ptBin][etaBin].effData      / self.effList[ptBin][etaBin].effMC)
                         h2.SetBinError  (ix,iy, self.effList[ptBin][etaBin].systCombined / averageMC )
@@ -334,8 +332,8 @@ class efficiencyList:
 
                     effAverage = effPlus
                     if not effMinus is None:
-                        effAverage = effPlus + effMinus
-
+                        if effMinus.effData>0:
+                            effAverage = effPlus + effMinus
                         
                     if not listOfGraphs.has_key(etaBin):                        
                         ### init average efficiency 
@@ -345,8 +343,12 @@ class efficiencyList:
                     aValue  = effAverage.effData
                     anError = effAverage.systCombined 
                     if doScaleFactor :
-                        aValue  = effAverage.effData      / effAverage.effMC
-                        anError = effAverage.systCombined / effAverage.effMC  
+                        if effAverage.effMC>0:
+                            aValue  = effAverage.effData      / effAverage.effMC
+                            anError = effAverage.systCombined / effAverage.effMC
+                        else:
+                            aValue  = 0.
+                            anError = 0.
                     listOfGraphs[etaBin].append( {'min': ptBin[0], 'max': ptBin[1],
                                                   'val': aValue  , 'err': anError } ) 
                                                   
@@ -405,8 +407,12 @@ class efficiencyList:
                 aValue  = effAverage.effData
                 anError = effAverage.systCombined 
                 if typeGR == 1:
-                    aValue  = effAverage.effData      / effAverage.effMC
-                    anError = effAverage.systCombined / effAverage.effMC  
+                    if effAverage.effMC>0:
+                        aValue  = effAverage.effData      / effAverage.effMC
+                        anError = effAverage.systCombined / effAverage.effMC
+                    else:
+                        aValue  = 0.
+                        anError = 0.
                 if typeGR == -1:
                     aValue  = effAverage.effMC
                     anError = 0#effAverage.errEffMC

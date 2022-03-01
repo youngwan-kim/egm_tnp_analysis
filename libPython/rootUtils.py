@@ -1,73 +1,7 @@
 import ROOT as rt
 import math
 from fitUtils import *
-import array as ar
 #from fitSimultaneousUtils import *
-
-def GetEffi( filename, binname ):
-    rootfile = rt.TFile( filename, 'read' )
-    canvas = rootfile.Get('%s_Canv'%binname)
-    reports=canvas.GetPad(1).GetPrimitive("reportTPave").GetLine(1).GetTitle().split()
-    rootfile.Close()
-    return float(reports[3]), float(reports[5])
-
-def GetChiPassFail(filename,binname):
-    canvas=GetTObject(filename,binname+'_Canv')
-    chiPass=canvas.GetPad(2).GetPrimitive('chiPass').GetTitle()
-    chiFail=canvas.GetPad(3).GetPrimitive('chiFail').GetTitle()
-    return float(chiPass.replace('chi/n=','')),float(chiFail.replace('chi/n=',''))
-
-def GetScorePassFail(filename,binname):
-    canvas=GetTObject(filename,binname+'_Canv')
-    chiPass=canvas.GetPad(2).GetPrimitive('scorePass').GetTitle()
-    chiFail=canvas.GetPad(3).GetPrimitive('scoreFail').GetTitle()
-    return float(chiPass.replace('score=','')),float(chiFail.replace('score=',''))
-
-def GetRooFitPar(filename,objname,parname):
-    roofitresult=GetTObject(filename,objname)
-    rooarglist=roofitresult.floatParsFinal()
-    return rooarglist.at(rooarglist.index(parname)).getVal()
-
-def GetTObject(filename,objname):
-    rootfile=rt.TFile(filename,"read")
-    obj=rootfile.Get(objname)
-    rootfile.Close()
-    return obj
-
-def MoveTObject(filename1,filename2,objname):
-    obj=GetTObject(filename1,objname)
-    rootfile=rt.TFile(filename2,"update")
-    if obj:
-        obj.Write(objname)
-    rootfile.Close()
-
-def GetEffiHist(filename,bindef,option="total"):
-    ptlist=[]
-    etalist=[]
-    for ib in range(len(bindef['bins'])):
-        ptlist.append(bindef['bins'][ib]['vars']['pt']['max'])
-        ptlist.append(bindef['bins'][ib]['vars']['pt']['min'])
-        etalist.append(bindef['bins'][ib]['vars']['eta']['max'])
-        etalist.append(bindef['bins'][ib]['vars']['eta']['min'])
-    ptlist=sorted(list(set(ptlist)))
-    etalist=sorted(list(set(etalist)))
-    effihist=rt.TH2D('%s_eta_pt'%(filename.replace('.','/').split('/')[-2]),'%s_eta_pt'%(filename.replace('.','/').split('/')[-2]),len(etalist)-1,ar.array('d',etalist),len(ptlist)-1,ar.array('d',ptlist))
-    f=open(filename,'r')
-    for line in f.readlines():
-        words=line.split()
-        if not words[0].isdigit(): continue
-        ib=int(words[0])
-        
-        effihist.SetBinContent(effihist.FindBin(bindef['bins'][ib]['vars']['eta']['min'],bindef['bins'][ib]['vars']['pt']['min']),float(words[1]))
-        if option is "stat":
-            effihist.SetBinError(effihist.FindBin(bindef['bins'][ib]['vars']['eta']['min'],bindef['bins'][ib]['vars']['pt']['min']),math.sqrt(float(words[2])*float(words[2])))
-        elif option is "syst":
-            effihist.SetBinError(effihist.FindBin(bindef['bins'][ib]['vars']['eta']['min'],bindef['bins'][ib]['vars']['pt']['min']),math.sqrt(float(words[3])*float(words[3])))
-        else:
-            effihist.SetBinError(effihist.FindBin(bindef['bins'][ib]['vars']['eta']['min'],bindef['bins'][ib]['vars']['pt']['min']),math.sqrt(float(words[2])*float(words[2])+float(words[3])*float(words[3])))
-
-    effihist.SetOption('colz text')
-    return effihist
 
 
 def histPlotter( filename, tnpBin, plotDir ):
@@ -80,10 +14,19 @@ def histPlotter( filename, tnpBin, plotDir ):
 
 
 def computeEffi( n1,n2,e1,e2):
+    effout = []
+    if n1==0. and n2==0.:
+        return [0.,0.]
+    if n1==0.5 and e1==0.0 and n2==0.5 and e2==0.0:
+        return [0.,0.]
     eff   = n1/(n1+n2)
     e_eff = 1/(n1+n2)*math.sqrt(e1*e1*n2*n2+e2*e2*n1*n1)/(n1+n2)
     if e_eff < 0.001 : e_eff = 0.001
-    return eff,e_eff
+
+    effout.append(eff)
+    effout.append(e_eff)
+    
+    return effout
 
 
 import os.path

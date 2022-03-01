@@ -23,7 +23,7 @@ cdef void removeNegativeBins(TH1D* h):
 # To Fill Tag and Probe histograms
 ##################################
 
-def makePassFailHistograms( infiles, treename, outfilename, numcut, bindef, var, weightexp=None,njob=1, ijob=0):
+def makePassFailHistograms( sample, flag, bindef, var ):
 
     #####################
     # C++ Initializations
@@ -58,25 +58,31 @@ def makePassFailHistograms( infiles, treename, outfilename, numcut, bindef, var,
     # Read in Tag and Probe Ntuples
     ###############################
 
-    tree = new TChain(str.encode(treename))
+    tree = new TChain(sample.tree)
+    if len(sample.path)<1:
+        print 'No input files...'
+        print 'Create an empty file'
+        emptyfile = new TFile(str.encode(sample.histFile),'recreate')
+        emptyfile.Close()
+        return
 
-    for p in infiles:
+    for p in sample.path:
         print ' adding rootfile: ', p
         tree.Add(str.encode(p))
 
-#    if not sample.puTree is None:
-#        print ' - Adding weight tree: %s from file %s ' % (sample.weight.split('.')[0], sample.puTree)
-#        tree.AddFriend(sample.weight.split('.')[0],sample.puTree)
+    if not sample.puTree is None:
+        print ' - Adding weight tree: %s from file %s ' % (sample.weight.split('.')[0], sample.puTree)
+        tree.AddFriend(sample.weight.split('.')[0],sample.puTree)
 
     #################################
     # Prepare hists, cuts and outfile
     #################################
 
-    cdef TFile* outfile = new TFile(str.encode(outfilename),'recreate')
+    cdef TFile* outfile = new TFile(str.encode(sample.histFile),'recreate')
 
     cutBinList = []
 
-    flag_formula = new TTreeFormula('Flag_Selection', str.encode(numcut), tree)
+    flag_formula = new TTreeFormula('Flag_Selection', str.encode(flag), tree)
 
     for ib in range(len(bindef['bins'])):
         hPass.push_back(new TH1D('%s_Pass' % bindef['bins'][ib]['name'],bindef['bins'][ib]['title'],var['nbins'],var['min'],var['max']))
@@ -85,9 +91,15 @@ def makePassFailHistograms( infiles, treename, outfilename, numcut, bindef, var,
         hFail[ib].Sumw2()
 
         cuts = bindef['bins'][ib]['cut']
+        if sample.mcTruth :
+            cuts = '%s && mcTrue==1' % cuts
+        if not sample.cut is None :
+            cuts = '%s && %s' % (cuts,sample.cut)
 
-        if not weightexp is None:
-            cutBin = '( %s ) * %s ' % (cuts, weightexp)
+        if not sample.weight is None:
+            cutBin = '( %s ) * %s ' % (cuts, sample.weight)
+            if sample.maxWeight < 999:
+                cutBin = '( %s ) * (%s < %f ? %s : 1.0 )' % (cuts, sample.weight,sample.maxWeight,sample.weight)
         else:
             cutBin = '%s' % cuts
 
@@ -107,8 +119,8 @@ def makePassFailHistograms( infiles, treename, outfilename, numcut, bindef, var,
     ######################################
 
     # Find out with variables are used to activate the corresponding branches
-    replace_patterns = ['&', '|', '-', 'cos(', 'sqrt(', 'fabs(', 'abs(', '(', ')', '>', '<', '=', '!', '*', '/']
-    branches = " ".join(cutBinList) + " "+var['name']+" "+ numcut
+    replace_patterns = ['&', '|', '-', 'cos(', 'sqrt(', 'fabs(', 'abs(', '(', ')', '>', '<', '=', '!', '*', '/', '?', ':']
+    branches = " ".join(cutBinList) + " "+sample.massName+" " + flag
     for p in replace_patterns:
         branches = branches.replace(p, ' ')
 
@@ -122,30 +134,38 @@ def makePassFailHistograms( infiles, treename, outfilename, numcut, bindef, var,
         tree.SetBranchStatus(br, 1)
 
     # Set adress of pair mass
-    tree.SetBranchAddress(var['name'], <void*>&pair_mass)
+    tree.SetBranchAddress(sample.massName, <void*>&pair_mass)
 
     ################
     # Loop over Tree
     ################
-
-    totalevents=tree.GetEntries()
-    nevts = totalevents/njob+1
-    frac_of_nevts = nevts/20
+    
+    nevts = tree.GetEntries()
+    startevent = 0
+    stepsize = nevts
+    if 'jobIndex' in var and 'njob' in var:
+       stepsize = nevts/var['njob']+1
+       startevent = stepsize*var['jobIndex']
+       
+    frac_of_nevts = stepsize/20
 
     print("Starting event loop to fill histograms..")
+    print("Run loop from "+str(startevent)+"/"+str(nevts)+" to "+str(startevent+stepsize-1)+"/"+str(nevts))
 
-    for index in range(nevts*ijob,nevts*(ijob+1)):
+    for index in range(startevent,startevent+stepsize):
+        if index >= nevts: break
         if index % frac_of_nevts == 0:
             print outcount, "%"
             outcount = outcount + 5
-        if index >= totalevents: 
-            break
 
         tree.GetEntry(index)
 
         for bnidx in range(nbins):
             weight = bin_formulas[bnidx].EvalInstance(0)
             if weight:
+                if math.isnan(weight):
+                    print 'nan weight!!! move to next event'
+                    break
                 if flag_formula.EvalInstance(0):
                     hPass[bnidx].Fill(pair_mass, weight)
                 else:
@@ -157,8 +177,8 @@ def makePassFailHistograms( infiles, treename, outfilename, numcut, bindef, var,
     #####################
 
     for ib in range(len(bindef['bins'])):
-        removeNegativeBins(hPass[ib])
-        removeNegativeBins(hFail[ib])
+        #removeNegativeBins(hPass[ib])
+        #removeNegativeBins(hFail[ib])
 
         hPass[ib].Write(hPass[ib].GetName())
         hFail[ib].Write(hFail[ib].GetName())
